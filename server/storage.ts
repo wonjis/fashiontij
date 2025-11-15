@@ -98,7 +98,13 @@ export class MemStorage implements IStorage {
   async createCollection(insertCollection: InsertCollection): Promise<Collection> {
     const id = randomUUID();
     const now = new Date();
-    const collection: Collection = { ...insertCollection, id, createdAt: now, updatedAt: now };
+    const collection: Collection = { 
+      ...insertCollection, 
+      id, 
+      description: insertCollection.description ?? null,
+      createdAt: now, 
+      updatedAt: now 
+    };
     this.collections.set(id, collection);
     return collection;
   }
@@ -127,6 +133,10 @@ export class MemStorage implements IStorage {
     const design: Design = { 
       ...insertDesign, 
       id, 
+      collectionId: insertDesign.collectionId ?? null,
+      description: insertDesign.description ?? null,
+      originalSketchUrl: insertDesign.originalSketchUrl ?? null,
+      designImageUrl: insertDesign.designImageUrl ?? null,
       createdAt: now, 
       updatedAt: now,
       layers: insertDesign.layers || [],
@@ -182,6 +192,9 @@ export class MemStorage implements IStorage {
     const techPack: TechPack = { 
       ...insertTechPack, 
       id, 
+      designDescription: insertTechPack.designDescription ?? null,
+      constructionDetails: insertTechPack.constructionDetails ?? null,
+      patternNotes: insertTechPack.patternNotes ?? null,
       createdAt: now, 
       updatedAt: now,
       specificationSheet: insertTechPack.specificationSheet || {},
@@ -205,6 +218,8 @@ export class MemStorage implements IStorage {
     const request: AiRequest = { 
       ...insertRequest, 
       id, 
+      designId: insertRequest.designId ?? null,
+      result: insertRequest.result ?? null,
       createdAt: new Date(),
       status: insertRequest.status || "pending"
     };
