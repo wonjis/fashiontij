@@ -11,14 +11,32 @@ export default function ImageUploadExample() {
   const { toast } = useToast();
 
   const handleGetUploadParameters = async () => {
-    const response = await apiRequest("/api/objects/upload", {
-      method: "POST",
-    });
-    const data = await response.json();
-    return {
-      method: "PUT" as const,
-      url: data.uploadURL,
-    };
+    try {
+      console.log("Requesting upload URL...");
+      const response = await apiRequest("/api/objects/upload", {
+        method: "POST",
+      });
+      
+      if (!response.ok) {
+        throw new Error(`HTTP error! status: ${response.status}`);
+      }
+      
+      const data = await response.json();
+      console.log("Upload URL received:", data.uploadURL);
+      
+      return {
+        method: "PUT" as const,
+        url: data.uploadURL,
+      };
+    } catch (error) {
+      console.error("Error getting upload URL:", error);
+      toast({
+        title: "Error",
+        description: "Failed to get upload URL. Please try again.",
+        variant: "destructive",
+      });
+      throw error;
+    }
   };
 
   const handleComplete = async (result: UploadResult<Record<string, unknown>, Record<string, unknown>>) => {
