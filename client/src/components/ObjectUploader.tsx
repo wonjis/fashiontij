@@ -1,93 +1,138 @@
-import { useState } from "react";
+import { useState, useRef } from "react";
 import type { ReactNode } from "react";
-import Uppy from "@uppy/core";
-import type { UppyFile, UploadResult } from "@uppy/core";
-import DashboardModal from "@uppy/react/dashboard-modal";
-import AwsS3 from "@uppy/aws-s3";
 import { Button } from "@/components/ui/button";
+import { useToast } from "@/hooks/use-toast";
+import { Loader2 } from "lucide-react";
 
 interface ObjectUploaderProps {
-  maxNumberOfFiles?: number;
   maxFileSize?: number;
-  onGetUploadParameters: (file: UppyFile<Record<string, unknown>, Record<string, unknown>>) => Promise<{
-    method: "PUT";
-    url: string;
-    headers?: Record<string, string>;
-  }>;
-  onComplete?: (
-    result: UploadResult<Record<string, unknown>, Record<string, unknown>>
-  ) => void;
+  accept?: string;
+  onUploadSuccess?: (uploadURL: string) => void;
   buttonClassName?: string;
   children: ReactNode;
 }
 
 export function ObjectUploader({
-  maxNumberOfFiles = 1,
   maxFileSize = 10485760,
-  onGetUploadParameters,
-  onComplete,
+  accept = "image/*",
+  onUploadSuccess,
   buttonClassName,
   children,
 }: ObjectUploaderProps) {
-  const [showModal, setShowModal] = useState(false);
-  const [uppy] = useState(() => {
-    const uppyInstance = new Uppy({
-      restrictions: {
-        maxNumberOfFiles,
-        maxFileSize,
-      },
-      autoProceed: false,
-      onBeforeFileAdded: (currentFile) => {
-        console.log("File added to Uppy:", currentFile.name);
-        return currentFile;
-      },
-    })
-      .use(AwsS3, {
-        shouldUseMultipart: false,
-        getUploadParameters: async (file) => {
-          console.log("Uppy calling getUploadParameters for:", file.name);
-          try {
-            const result = await onGetUploadParameters(file);
-            console.log("getUploadParameters result:", result);
-            return result;
-          } catch (error) {
-            console.error("Error in getUploadParameters:", error);
-            throw error;
-          }
-        },
-      })
-      .on("upload", () => {
-        console.log("Upload started");
-      })
-      .on("upload-success", (file, response) => {
-        console.log("Upload success:", file?.name, response);
-      })
-      .on("upload-error", (file, error) => {
-        console.error("Upload error for", file?.name, ":", error);
-      })
-      .on("error", (error) => {
-        console.error("Uppy error:", error);
-      })
-      .on("complete", (result: UploadResult<Record<string, unknown>, Record<string, unknown>>) => {
-        console.log("Upload complete:", result);
-        onComplete?.(result);
+  const [isUploading, setIsUploading] = useState(false);
+  const fileInputRef = useRef<HTMLInputElement>(null);
+  const { toast } = useToast();
+
+  const handleButtonClick = () => {
+    fileInputRef.current?.click();
+  };
+
+  const handleFileChange = async (event: React.ChangeEvent<HTMLInputElement>) => {
+    const file = event.target.files?.[0];
+    if (!file) return;
+
+    if (file.size > maxFileSize) {
+      toast({
+        title: "File too large",
+        description: `File size must be less than ${Math.round(maxFileSize / 1024 / 1024)}MB`,
+        variant: "destructive",
       });
-    
-    return uppyInstance;
-  });
+      return;
+    }
+
+    setIsUploading(true);
+
+    try {
+      console.log("Getting upload URL for:", file.name);
+      const urlResponse = await fetch("/api/objects/upload", {
+        method: "POST",
+      });
+
+      if (!urlResponse.ok) {
+        throw new Error(`Failed to get upload URL: ${urlResponse.status}`);
+      }
+
+      const { uploadURL } = await urlResponse.json();
+      console.log("Upload URL received:", uploadURL);
+
+      console.log("Uploading file...");
+      const uploadResponse = await fetch(uploadURL, {
+        method: "PUT",
+        body: file,
+        headers: {
+          "Content-Type": file.type,
+        },
+      });
+
+      if (!uploadResponse.ok) {
+        throw new Error(`Upload failed: ${uploadResponse.status}`);
+      }
+
+      console.log("File uploaded successfully");
+
+      console.log("Setting ACL...");
+      const aclResponse = await fetch("/api/design-images", {
+        method: "PUT",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({ imageURL: uploadURL }),
+      });
+
+      if (!aclResponse.ok) {
+        throw new Error(`Failed to set ACL: ${aclResponse.status}`);
+      }
+
+      const { objectPath } = await aclResponse.json();
+      console.log("ACL set, object path:", objectPath);
+
+      toast({
+        title: "Upload successful!",
+        description: `${file.name} has been uploaded`,
+      });
+
+      onUploadSuccess?.(objectPath);
+
+      if (fileInputRef.current) {
+        fileInputRef.current.value = "";
+      }
+    } catch (error) {
+      console.error("Upload error:", error);
+      toast({
+        title: "Upload failed",
+        description: error instanceof Error ? error.message : "An error occurred",
+        variant: "destructive",
+      });
+    } finally {
+      setIsUploading(false);
+    }
+  };
 
   return (
     <div>
-      <Button onClick={() => setShowModal(true)} className={buttonClassName} data-testid="button-upload-image">
-        {children}
-      </Button>
-
-      <DashboardModal
-        uppy={uppy}
-        open={showModal}
-        onRequestClose={() => setShowModal(false)}
-        proudlyDisplayPoweredByUppy={false}
+      <input
+        ref={fileInputRef}
+        type="file"
+        accept={accept}
+        onChange={handleFileChange}
+        className="hidden"
+        data-testid="input-file"
       />
+      <Button
+        onClick={handleButtonClick}
+        className={buttonClassName}
+        disabled={isUploading}
+        data-testid="button-upload-image"
+      >
+        {isUploading ? (
+          <>
+            <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+            Uploading...
+          </>
+        ) : (
+          children
+        )}
+      </Button>
     </div>
   );
 }
