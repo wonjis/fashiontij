@@ -122,12 +122,12 @@ export default function DesignEditor() {
           </aside>
 
           <main className="flex-1 bg-[#0d001d] flex items-center justify-center p-8">
-            <div className="max-w-2xl w-full">
+            <div className="max-w-md w-full">
               {design?.designImageUrl ? (
                 <img
                   src={design.designImageUrl}
                   alt={design.name}
-                  className="w-full h-auto object-contain"
+                  className="w-full h-auto object-contain max-h-[600px]"
                 />
               ) : (
                 <div className="aspect-square bg-[#1a0f2e] rounded-lg flex items-center justify-center">
