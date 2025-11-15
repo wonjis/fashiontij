@@ -3,6 +3,8 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Search, User } from "lucide-react";
 import { useLocation } from "wouter";
+import { CreateDesignDialog } from "@/components/CreateDesignDialog";
+import { queryClient } from "@/lib/queryClient";
 
 export default function Collections() {
   const [, setLocation] = useLocation();
@@ -85,9 +87,11 @@ export default function Collections() {
               />
             </div>
             <div className="flex items-center gap-4">
-              <Button className="bg-[#bf60ff] hover:bg-[#bf60ff]/90 text-black">
-                + Create
-              </Button>
+              <CreateDesignDialog
+                onSuccess={() => {
+                  queryClient.invalidateQueries({ queryKey: ["designs"] });
+                }}
+              />
               <Button variant="ghost" size="icon" className="text-white">
                 <User className="w-5 h-5" />
               </Button>
