@@ -34,9 +34,9 @@ export default function Landing() {
         <div className="flex items-center justify-center">
           <div className="relative">
             <img
-              src="/figmaAssets/sweater-showcase.png"
+              src="/figmaAssets/before-after-pants.png"
               alt="Before and After showcase"
-              className="w-auto h-auto max-w-2xl object-contain"
+              className="w-auto h-auto max-w-3xl object-contain"
             />
           </div>
         </div>
