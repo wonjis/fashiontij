@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { ObjectUploader } from "@/components/ObjectUploader";
-import type { UploadResult } from "@uppy/core";
+import type { UploadResult, UppyFile } from "@uppy/core";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { apiRequest } from "@/lib/queryClient";
 import { useToast } from "@/hooks/use-toast";
@@ -10,9 +10,9 @@ export default function ImageUploadExample() {
   const [imageUrl, setImageUrl] = useState<string>("");
   const { toast } = useToast();
 
-  const handleGetUploadParameters = async () => {
+  const handleGetUploadParameters = async (file: UppyFile<Record<string, unknown>, Record<string, unknown>>) => {
     try {
-      console.log("Requesting upload URL...");
+      console.log("Requesting upload URL for file:", file.name);
       const response = await apiRequest("/api/objects/upload", {
         method: "POST",
       });
