@@ -112,7 +112,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
         designImageUrl: item.imageUrl,
         collectionId: null,
         originalSketchUrl: null,
-        layers: item.designData,
+        layers: item.designData as any,
         properties: {},
       });
 

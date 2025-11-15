@@ -16,6 +16,15 @@ export default function Collections() {
     },
   });
 
+  const { data: designs = [] } = useQuery({
+    queryKey: ["designs"],
+    queryFn: async () => {
+      const res = await fetch("/api/designs");
+      if (!res.ok) throw new Error("Failed to fetch designs");
+      return res.json();
+    },
+  });
+
   return (
     <div className="min-h-screen bg-[#0d001d] text-white">
       <div className="flex h-screen">
@@ -89,26 +98,27 @@ export default function Collections() {
           <h1 className="text-3xl font-semibold mb-8">SS26 collection</h1>
 
           <div className="grid grid-cols-4 gap-6">
-            {collections.length === 0 ? (
+            {designs.length === 0 ? (
               <div className="col-span-4 text-center py-12 text-white/60">
-                No collections yet. Click "+ Create" to get started.
+                No designs yet. Click "+ Create" to get started.
               </div>
             ) : (
-              collections.map((collection: any) => (
+              designs.map((design: any) => (
                 <div
-                  key={collection.id}
+                  key={design.id}
+                  onClick={() => setLocation(`/editor/${design.id}`)}
                   className="bg-[#1a0f2e] rounded-xl p-4 cursor-pointer hover:bg-[#2a1f3e] transition-colors"
                 >
                   <div className="aspect-square bg-[#2a1f3e] rounded-lg mb-4 flex items-center justify-center">
                     <img
-                      src="/figmaAssets/jacket.png"
-                      alt={collection.name}
+                      src={design.designImageUrl || "/figmaAssets/jacket.png"}
+                      alt={design.name}
                       className="w-full h-full object-contain p-4"
                     />
                   </div>
-                  <h3 className="font-medium">{collection.name}</h3>
+                  <h3 className="font-medium">{design.name}</h3>
                   <p className="text-sm text-white/60">
-                    Edited {new Date(collection.updatedAt).toLocaleDateString()}
+                    Edited {new Date(design.updatedAt).toLocaleDateString()}
                   </p>
                 </div>
               ))

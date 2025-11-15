@@ -31,12 +31,13 @@ export default function ResourceCategory() {
       if (!res.ok) throw new Error("Failed to copy item");
       return res.json();
     },
-    onSuccess: () => {
+    onSuccess: (design) => {
       toast({
         title: "Success",
         description: "Item copied to your designs",
       });
       queryClient.invalidateQueries({ queryKey: ["designs"] });
+      setLocation(`/editor/${design.id}`);
     },
   });
 

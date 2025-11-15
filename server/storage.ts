@@ -61,13 +61,100 @@ export class MemStorage implements IStorage {
   }
 
   private seedData() {
+    const demoUserId = "demo-user";
+    const now = new Date();
+
     const categories = [
-      { id: randomUUID(), name: "Pants", slug: "pants", imageUrl: "/figmaAssets/jacket.png", createdAt: new Date() },
-      { id: randomUUID(), name: "Blazers", slug: "blazers", imageUrl: "/figmaAssets/jacket.png", createdAt: new Date() },
-      { id: randomUUID(), name: "Swimsuits", slug: "swimsuits", imageUrl: "/figmaAssets/jacket.png", createdAt: new Date() },
-      { id: randomUUID(), name: "Jackets/Coats", slug: "jackets-coats", imageUrl: "/figmaAssets/jacket.png", createdAt: new Date() }
+      { id: randomUUID(), name: "Pants", slug: "pants", imageUrl: "/figmaAssets/jacket.png", createdAt: now },
+      { id: randomUUID(), name: "Blazers", slug: "blazers", imageUrl: "/figmaAssets/jacket.png", createdAt: now },
+      { id: randomUUID(), name: "Swimsuits", slug: "swimsuits", imageUrl: "/figmaAssets/jacket.png", createdAt: now },
+      { id: randomUUID(), name: "Jackets/Coats", slug: "jackets-coats", imageUrl: "/figmaAssets/jacket.png", createdAt: now }
     ];
     categories.forEach(cat => this.resourceCategories.set(cat.id, cat));
+
+    const pantsCategory = Array.from(this.resourceCategories.values()).find(c => c.slug === "pants");
+    const blazersCategory = Array.from(this.resourceCategories.values()).find(c => c.slug === "blazers");
+    
+    if (pantsCategory) {
+      const resourceItems = [
+        { id: randomUUID(), categoryId: pantsCategory.id, name: "Drawstring pant", imageUrl: "/figmaAssets/jacket.png", designData: {}, createdAt: now },
+        { id: randomUUID(), categoryId: pantsCategory.id, name: "Wide-leg trouser", imageUrl: "/figmaAssets/jacket.png", designData: {}, createdAt: now },
+        { id: randomUUID(), categoryId: pantsCategory.id, name: "Baggy sweatpant", imageUrl: "/figmaAssets/jacket.png", designData: {}, createdAt: now },
+      ];
+      resourceItems.forEach(item => this.resourceItems.set(item.id, item));
+    }
+
+    const collection = {
+      id: randomUUID(),
+      userId: demoUserId,
+      name: "SS26 collection",
+      description: "Spring/Summer 2026 collection",
+      createdAt: now,
+      updatedAt: now
+    };
+    this.collections.set(collection.id, collection);
+
+    const designs = [
+      {
+        id: randomUUID(),
+        userId: demoUserId,
+        collectionId: collection.id,
+        name: "SS26 - Top #1",
+        description: "Striped rugby pullover",
+        originalSketchUrl: "/figmaAssets/jacket.png",
+        designImageUrl: "/figmaAssets/jacket.png",
+        layers: [],
+        properties: {},
+        createdAt: new Date(now.getTime() - 2 * 24 * 60 * 60 * 1000),
+        updatedAt: new Date(now.getTime() - 2 * 24 * 60 * 60 * 1000),
+      },
+      {
+        id: randomUUID(),
+        userId: demoUserId,
+        collectionId: collection.id,
+        name: "SS26 - Top #2",
+        description: "White pullover",
+        originalSketchUrl: "/figmaAssets/jacket.png",
+        designImageUrl: "/figmaAssets/jacket.png",
+        layers: [],
+        properties: {},
+        createdAt: new Date(now.getTime() - 3 * 24 * 60 * 60 * 1000),
+        updatedAt: new Date(now.getTime() - 2 * 24 * 60 * 60 * 1000),
+      },
+      {
+        id: randomUUID(),
+        userId: demoUserId,
+        collectionId: collection.id,
+        name: "SS26 - Outerwear #1",
+        description: "Beige utility jacket",
+        originalSketchUrl: "/figmaAssets/jacket.png",
+        designImageUrl: "/figmaAssets/jacket.png",
+        layers: [],
+        properties: {},
+        createdAt: new Date(now.getTime() - 4 * 24 * 60 * 60 * 1000),
+        updatedAt: new Date(now.getTime() - 3 * 24 * 60 * 60 * 1000),
+      },
+    ];
+    designs.forEach(design => this.designs.set(design.id, design));
+
+    designs.forEach(design => {
+      const techPack = {
+        id: randomUUID(),
+        designId: design.id,
+        designDescription: "A relaxed-fit, long-sleeve pullover with a rugby-inspired silhouette and wide horizontal stripes alternating in powder blue and white.",
+        specificationSheet: { chest: "44\"", length: "28\"", sleeve: "24\"" },
+        billOfMaterials: [
+          { item: "Main fabric", detail: "Cotton jersey" },
+          { item: "Ribbed knit collar", detail: "Matching color" }
+        ],
+        constructionDetails: "Cut-and-sew construction with wide panel stripes; front and back panels aligned for stripe continuity.",
+        patternNotes: "The hem sits slightly cropped for a balanced, modern proportion.",
+        costSheet: { materials: 12.50, labor: 8.00, total: 20.50 },
+        createdAt: design.createdAt,
+        updatedAt: design.updatedAt,
+      };
+      this.techPacks.set(techPack.id, techPack);
+    });
   }
 
   async getUser(id: string): Promise<User | undefined> {
