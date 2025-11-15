@@ -31,47 +31,13 @@ export default function Landing() {
           </p>
         </div>
 
-        <div className="flex items-center justify-center gap-8">
-          <div className="bg-[#2a2a3e] rounded-2xl p-8 flex flex-col items-center gap-4 w-64">
-            <div className="bg-[#1a1a2e] rounded-lg px-4 py-2">
-              <span className="text-white/60 text-sm">Before</span>
-            </div>
-            <div className="w-full h-64 bg-[#1a1a2e] rounded-lg flex items-center justify-center">
-              <img
-                src="/figmaAssets/close-icon.png"
-                alt="Sketch placeholder"
-                className="w-32 h-32 object-contain opacity-30"
-              />
-            </div>
-          </div>
-
-          <div className="w-12 h-12 rounded-full bg-[#bf60ff]/20 flex items-center justify-center">
-            <svg
-              className="w-6 h-6 text-[#bf60ff]"
-              fill="none"
-              stroke="currentColor"
-              viewBox="0 0 24 24"
-            >
-              <path
-                strokeLinecap="round"
-                strokeLinejoin="round"
-                strokeWidth={2}
-                d="M9 5l7 7-7 7"
-              />
-            </svg>
-          </div>
-
-          <div className="bg-[#2a2a3e] rounded-2xl p-8 flex flex-col items-center gap-4 w-64">
-            <div className="bg-[#1a1a2e] rounded-lg px-4 py-2">
-              <span className="text-white/60 text-sm">After</span>
-            </div>
-            <div className="w-full h-64 bg-[#1a1a2e] rounded-lg flex items-center justify-center">
-              <img
-                src="/figmaAssets/jacket.png"
-                alt="Result"
-                className="w-full h-full object-contain"
-              />
-            </div>
+        <div className="flex items-center justify-center">
+          <div className="relative">
+            <img
+              src="/figmaAssets/sweater-showcase.png"
+              alt="Before and After showcase"
+              className="w-auto h-auto max-w-2xl object-contain"
+            />
           </div>
         </div>
 
