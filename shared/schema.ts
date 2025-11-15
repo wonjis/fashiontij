@@ -25,6 +25,8 @@ export const designs = pgTable("designs", {
   collectionId: varchar("collection_id").references(() => collections.id),
   name: text("name").notNull(),
   description: text("description"),
+  category: text("category"),
+  season: text("season"),
   originalSketchUrl: text("original_sketch_url"),
   designImageUrl: text("design_image_url"),
   layers: jsonb("layers").default(sql`'[]'`),

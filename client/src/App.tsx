@@ -11,6 +11,7 @@ import Resources from "@/pages/Resources";
 import ResourceCategory from "@/pages/ResourceCategory";
 import DesignEditor from "@/pages/DesignEditor";
 import ImageUploadExample from "@/pages/ImageUploadExample";
+import AdminDemo from "@/pages/AdminDemo";
 
 function Router() {
   return (
@@ -21,6 +22,7 @@ function Router() {
       <Route path="/resources/:slug" component={ResourceCategory} />
       <Route path="/editor/:id" component={DesignEditor} />
       <Route path="/upload-example" component={ImageUploadExample} />
+      <Route path="/admin" component={AdminDemo} />
       <Route component={NotFound} />
     </Switch>
   );
