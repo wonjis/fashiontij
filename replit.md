@@ -46,14 +46,24 @@ Preferred communication style: Simple, everyday language.
 - Request logging with duration tracking
 
 **Storage Layer**
-- In-memory storage implementation (MemStorage class)
+- PostgreSQL database storage (DBStorage class) using Neon Serverless
 - Interface-based design (IStorage) for potential database swapping
 - Entity types: Users, Collections, Designs, Resources, TechPacks, AI Requests
+
+**Object Storage**
+- Replit App Storage (Google Cloud Storage backend) for image uploads
+- ObjectStorageService for upload URL generation and file serving
+- ACL system for access control (public/private visibility)
+- Endpoints:
+  - POST /api/objects/upload - Get presigned upload URL
+  - GET /objects/:objectPath - Serve uploaded images
+  - PUT /api/design-images - Set image ACL after upload
 
 **Design Decisions**
 - Demo user authentication ("demo-user" hardcoded) - placeholder for future auth system
 - Separation of storage interface from implementation for flexibility
 - UUID-based entity identification
+- Public visibility for design images (accessible to all users)
 
 ### Database Schema
 
@@ -78,10 +88,12 @@ Preferred communication style: Simple, everyday language.
 
 ### External Dependencies
 
-**Database**
+**Database & Storage**
 - Neon Serverless PostgreSQL (`@neondatabase/serverless`)
 - Connection via `DATABASE_URL` environment variable
 - Drizzle ORM for type-safe database queries
+- Google Cloud Storage via `@google-cloud/storage` for file uploads
+- Environment variables: `PUBLIC_OBJECT_SEARCH_PATHS`, `PRIVATE_OBJECT_DIR`, `DEFAULT_OBJECT_STORAGE_BUCKET_ID`
 
 **UI Component Library**
 - Radix UI primitives for accessible, unstyled components
@@ -97,6 +109,7 @@ Preferred communication style: Simple, everyday language.
 - Replit-specific plugins for runtime error handling and cartographer integration
 - TSX for TypeScript execution in development
 - ESBuild for production bundling
+- Uppy for file uploads (@uppy/core, @uppy/react, @uppy/aws-s3, @uppy/dashboard)
 
 **Styling & Utilities**
 - Tailwind CSS with PostCSS processing
