@@ -36,7 +36,7 @@ export default function Landing() {
             <img
               src="/figmaAssets/before-after-pants.png"
               alt="Before and After showcase"
-              className="w-auto h-auto max-w-xl object-contain"
+              className="w-auto h-auto max-w-md object-contain"
             />
           </div>
         </div>
