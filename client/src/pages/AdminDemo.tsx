@@ -7,10 +7,11 @@ import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { ObjectUploader } from "@/components/ObjectUploader";
 import { apiRequest, queryClient } from "@/lib/queryClient";
 import { useToast } from "@/hooks/use-toast";
-import { Upload, Plus, Package, Image as ImageIcon, FileText } from "lucide-react";
+import { Upload, Plus, Package, Image as ImageIcon, FileText, Edit } from "lucide-react";
 import type { Collection, Design, TechPack, ResourceItem } from "@shared/schema";
 
 export default function AdminDemo() {
@@ -148,13 +149,16 @@ function CollectionManager({ collections }: { collections: Collection[] }) {
             {collections.map((collection) => (
               <div
                 key={collection.id}
-                className="p-3 rounded-md bg-muted"
+                className="p-3 rounded-md bg-muted flex items-start justify-between gap-2"
                 data-testid={`collection-${collection.id}`}
               >
-                <p className="font-medium">{collection.name}</p>
-                {collection.description && (
-                  <p className="text-sm text-muted-foreground">{collection.description}</p>
-                )}
+                <div className="flex-1 min-w-0">
+                  <p className="font-medium">{collection.name}</p>
+                  {collection.description && (
+                    <p className="text-sm text-muted-foreground">{collection.description}</p>
+                  )}
+                </div>
+                <EditCollectionDialog collection={collection} />
               </div>
             ))}
             {collections.length === 0 && (
@@ -164,6 +168,70 @@ function CollectionManager({ collections }: { collections: Collection[] }) {
         </CardContent>
       </Card>
     </div>
+  );
+}
+
+function EditCollectionDialog({ collection }: { collection: Collection }) {
+  const { toast } = useToast();
+  const [open, setOpen] = useState(false);
+  const [name, setName] = useState(collection.name);
+  const [description, setDescription] = useState(collection.description || "");
+
+  const updateMutation = useMutation({
+    mutationFn: async (data: { name: string; description: string }) => {
+      const response = await apiRequest("PATCH", `/api/collections/${collection.id}`, data);
+      return response.json();
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["/api/collections"] });
+      toast({ title: "Collection updated successfully" });
+      setOpen(false);
+    },
+    onError: (error: Error) => {
+      toast({ title: "Failed to update collection", description: error.message, variant: "destructive" });
+    },
+  });
+
+  return (
+    <Dialog open={open} onOpenChange={setOpen}>
+      <DialogTrigger asChild>
+        <Button size="icon" variant="ghost" data-testid={`button-edit-collection-${collection.id}`}>
+          <Edit className="h-4 w-4" />
+        </Button>
+      </DialogTrigger>
+      <DialogContent>
+        <DialogHeader>
+          <DialogTitle>Edit Collection</DialogTitle>
+          <DialogDescription>Update collection details</DialogDescription>
+        </DialogHeader>
+        <div className="space-y-4">
+          <div className="space-y-2">
+            <Label>Name</Label>
+            <Input
+              value={name}
+              onChange={(e) => setName(e.target.value)}
+              data-testid="input-edit-collection-name"
+            />
+          </div>
+          <div className="space-y-2">
+            <Label>Description</Label>
+            <Textarea
+              value={description}
+              onChange={(e) => setDescription(e.target.value)}
+              data-testid="input-edit-collection-description"
+            />
+          </div>
+          <Button
+            onClick={() => updateMutation.mutate({ name, description })}
+            disabled={!name || updateMutation.isPending}
+            className="w-full"
+            data-testid="button-save-collection"
+          >
+            Save Changes
+          </Button>
+        </div>
+      </DialogContent>
+    </Dialog>
   );
 }
 
@@ -341,10 +409,15 @@ function DesignManager({ collections, designs }: { collections: Collection[]; de
                 className="p-3 rounded-md bg-muted space-y-2"
                 data-testid={`design-${design.id}`}
               >
-                <p className="font-medium">{design.name}</p>
-                <p className="text-sm text-muted-foreground">
-                  {design.category} • {design.season}
-                </p>
+                <div className="flex items-start justify-between gap-2">
+                  <div className="flex-1 min-w-0">
+                    <p className="font-medium">{design.name}</p>
+                    <p className="text-sm text-muted-foreground">
+                      {design.category} • {design.season}
+                    </p>
+                  </div>
+                  <EditDesignDialog design={design} collections={collections} />
+                </div>
                 {design.designImageUrl && (
                   <div className="bg-purple-600 dark:bg-purple-700 rounded p-2">
                     <img src={design.designImageUrl} alt={design.name} className="w-full rounded" />
@@ -359,6 +432,100 @@ function DesignManager({ collections, designs }: { collections: Collection[]; de
         </CardContent>
       </Card>
     </div>
+  );
+}
+
+function EditDesignDialog({ design, collections }: { design: Design; collections: Collection[] }) {
+  const { toast } = useToast();
+  const [open, setOpen] = useState(false);
+  const [name, setName] = useState(design.name);
+  const [category, setCategory] = useState(design.category || "");
+  const [season, setSeason] = useState(design.season || "");
+  const [collectionId, setCollectionId] = useState(design.collectionId || "");
+
+  const updateMutation = useMutation({
+    mutationFn: async (data: {
+      name: string;
+      category: string;
+      season: string;
+      collectionId: string;
+    }) => {
+      const response = await apiRequest("PATCH", `/api/designs/${design.id}`, data);
+      return response.json();
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["/api/designs"] });
+      toast({ title: "Design updated successfully" });
+      setOpen(false);
+    },
+    onError: (error: Error) => {
+      toast({ title: "Failed to update design", description: error.message, variant: "destructive" });
+    },
+  });
+
+  return (
+    <Dialog open={open} onOpenChange={setOpen}>
+      <DialogTrigger asChild>
+        <Button size="icon" variant="ghost" data-testid={`button-edit-design-${design.id}`}>
+          <Edit className="h-4 w-4" />
+        </Button>
+      </DialogTrigger>
+      <DialogContent>
+        <DialogHeader>
+          <DialogTitle>Edit Design</DialogTitle>
+          <DialogDescription>Update design details</DialogDescription>
+        </DialogHeader>
+        <div className="space-y-4">
+          <div className="space-y-2">
+            <Label>Collection</Label>
+            <Select value={collectionId} onValueChange={setCollectionId}>
+              <SelectTrigger>
+                <SelectValue placeholder="Select collection" />
+              </SelectTrigger>
+              <SelectContent>
+                {collections.map((collection) => (
+                  <SelectItem key={collection.id} value={collection.id}>
+                    {collection.name}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          </div>
+          <div className="space-y-2">
+            <Label>Name</Label>
+            <Input
+              value={name}
+              onChange={(e) => setName(e.target.value)}
+              data-testid="input-edit-design-name"
+            />
+          </div>
+          <div className="space-y-2">
+            <Label>Category</Label>
+            <Input
+              value={category}
+              onChange={(e) => setCategory(e.target.value)}
+              data-testid="input-edit-design-category"
+            />
+          </div>
+          <div className="space-y-2">
+            <Label>Season</Label>
+            <Input
+              value={season}
+              onChange={(e) => setSeason(e.target.value)}
+              data-testid="input-edit-design-season"
+            />
+          </div>
+          <Button
+            onClick={() => updateMutation.mutate({ name, category, season, collectionId })}
+            disabled={!name || !category || !season || updateMutation.isPending}
+            className="w-full"
+            data-testid="button-save-design"
+          >
+            Save Changes
+          </Button>
+        </div>
+      </DialogContent>
+    </Dialog>
   );
 }
 
@@ -582,7 +749,10 @@ function ResourceManager({ resources }: { resources: ResourceItem[] }) {
                 className="p-3 rounded-md bg-muted space-y-2"
                 data-testid={`resource-${resource.id}`}
               >
-                <p className="font-medium text-sm">{resource.name}</p>
+                <div className="flex items-start justify-between gap-2">
+                  <p className="font-medium text-sm flex-1 min-w-0">{resource.name}</p>
+                  <EditResourceDialog resource={resource} />
+                </div>
                 {resource.imageUrl && (
                   <div className="bg-purple-600 dark:bg-purple-700 rounded p-2">
                     <img src={resource.imageUrl} alt={resource.name} className="w-full rounded" />
@@ -597,5 +767,60 @@ function ResourceManager({ resources }: { resources: ResourceItem[] }) {
         </CardContent>
       </Card>
     </div>
+  );
+}
+
+function EditResourceDialog({ resource }: { resource: ResourceItem }) {
+  const { toast } = useToast();
+  const [open, setOpen] = useState(false);
+  const [name, setName] = useState(resource.name);
+
+  const updateMutation = useMutation({
+    mutationFn: async (data: { name: string }) => {
+      const response = await apiRequest("PATCH", `/api/resource-items/${resource.id}`, data);
+      return response.json();
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["/api/resources"] });
+      toast({ title: "Resource updated successfully" });
+      setOpen(false);
+    },
+    onError: (error: Error) => {
+      toast({ title: "Failed to update resource", description: error.message, variant: "destructive" });
+    },
+  });
+
+  return (
+    <Dialog open={open} onOpenChange={setOpen}>
+      <DialogTrigger asChild>
+        <Button size="icon" variant="ghost" data-testid={`button-edit-resource-${resource.id}`}>
+          <Edit className="h-4 w-4" />
+        </Button>
+      </DialogTrigger>
+      <DialogContent>
+        <DialogHeader>
+          <DialogTitle>Edit Resource</DialogTitle>
+          <DialogDescription>Update resource details</DialogDescription>
+        </DialogHeader>
+        <div className="space-y-4">
+          <div className="space-y-2">
+            <Label>Name</Label>
+            <Input
+              value={name}
+              onChange={(e) => setName(e.target.value)}
+              data-testid="input-edit-resource-name"
+            />
+          </div>
+          <Button
+            onClick={() => updateMutation.mutate({ name })}
+            disabled={!name || updateMutation.isPending}
+            className="w-full"
+            data-testid="button-save-resource"
+          >
+            Save Changes
+          </Button>
+        </div>
+      </DialogContent>
+    </Dialog>
   );
 }
