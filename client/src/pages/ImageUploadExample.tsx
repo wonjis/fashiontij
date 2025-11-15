@@ -34,12 +34,14 @@ export default function ImageUploadExample() {
               <code className="block p-2 bg-muted rounded text-sm" data-testid="text-image-url">
                 {imageUrl}
               </code>
-              <img
-                src={imageUrl}
-                alt="Uploaded"
-                className="max-w-md rounded border"
-                data-testid="img-uploaded"
-              />
+              <div className="bg-purple-600 dark:bg-purple-700 rounded p-4 inline-block">
+                <img
+                  src={imageUrl}
+                  alt="Uploaded"
+                  className="max-w-md rounded"
+                  data-testid="img-uploaded"
+                />
+              </div>
             </div>
           )}
         </CardContent>
