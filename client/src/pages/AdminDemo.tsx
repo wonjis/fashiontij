@@ -403,28 +403,62 @@ function DesignManager({ collections, designs }: { collections: Collection[]; de
         </CardHeader>
         <CardContent>
           <div className="grid gap-4 md:grid-cols-3">
-            {designs.map((design) => (
-              <div
-                key={design.id}
-                className="p-3 rounded-md bg-muted space-y-2"
-                data-testid={`design-${design.id}`}
-              >
-                <div className="flex items-start justify-between gap-2">
-                  <div className="flex-1 min-w-0">
-                    <p className="font-medium">{design.name}</p>
-                    <p className="text-sm text-muted-foreground">
-                      {design.category} • {design.season}
-                    </p>
+            {designs.map((design) => {
+              const collection = collections.find((c) => c.id === design.collectionId);
+              return (
+                <div
+                  key={design.id}
+                  className="p-3 rounded-md bg-muted space-y-2"
+                  data-testid={`design-${design.id}`}
+                >
+                  <div className="flex items-start justify-between gap-2">
+                    <div className="flex-1 min-w-0">
+                      <p className="font-medium">{design.name}</p>
+                      {collection && (
+                        <p className="text-xs text-muted-foreground">
+                          Collection: {collection.name}
+                        </p>
+                      )}
+                      <p className="text-sm text-muted-foreground">
+                        {design.category} • {design.season}
+                      </p>
+                      {design.description && (
+                        <p className="text-xs text-muted-foreground mt-1">
+                          {design.description}
+                        </p>
+                      )}
+                    </div>
+                    <EditDesignDialog design={design} collections={collections} />
                   </div>
-                  <EditDesignDialog design={design} collections={collections} />
+                  <div className="grid grid-cols-2 gap-2">
+                    {design.originalSketchUrl && (
+                      <div>
+                        <p className="text-xs text-muted-foreground mb-1">Original</p>
+                        <div className="bg-purple-600 dark:bg-purple-700 rounded p-2">
+                          <img
+                            src={design.originalSketchUrl}
+                            alt="Original"
+                            className="w-full rounded"
+                          />
+                        </div>
+                      </div>
+                    )}
+                    {design.designImageUrl && (
+                      <div>
+                        <p className="text-xs text-muted-foreground mb-1">Flat Sketch</p>
+                        <div className="bg-purple-600 dark:bg-purple-700 rounded p-2">
+                          <img
+                            src={design.designImageUrl}
+                            alt="Flat"
+                            className="w-full rounded"
+                          />
+                        </div>
+                      </div>
+                    )}
+                  </div>
                 </div>
-                {design.designImageUrl && (
-                  <div className="bg-purple-600 dark:bg-purple-700 rounded p-2">
-                    <img src={design.designImageUrl} alt={design.name} className="w-full rounded" />
-                  </div>
-                )}
-              </div>
-            ))}
+              );
+            })}
             {designs.length === 0 && (
               <p className="text-sm text-muted-foreground col-span-3">No designs yet</p>
             )}
@@ -532,31 +566,49 @@ function EditDesignDialog({ design, collections }: { design: Design; collections
 function TechPackManager({ designs }: { designs: Design[] }) {
   const { toast } = useToast();
   const [designId, setDesignId] = useState("");
-  const [measurements, setMeasurements] = useState("");
-  const [fabricDetails, setFabricDetails] = useState("");
-  const [constructionNotes, setConstructionNotes] = useState("");
+  const [designDescription, setDesignDescription] = useState("");
+  const [specificationSheet, setSpecificationSheet] = useState("");
+  const [billOfMaterials, setBillOfMaterials] = useState("");
+  const [constructionDetails, setConstructionDetails] = useState("");
+  const [patternNotes, setPatternNotes] = useState("");
+  const [costSheet, setCostSheet] = useState("");
+
+  const { data: techPacks = [] } = useQuery<TechPack[]>({
+    queryKey: ["/api/techpacks"],
+    enabled: false,
+  });
 
   const createMutation = useMutation({
     mutationFn: async (data: {
       designId: string;
-      measurements: string;
-      fabricDetails: string;
-      constructionNotes: string;
+      designDescription: string;
+      specificationSheet: string;
+      billOfMaterials: string;
+      constructionDetails: string;
+      patternNotes: string;
+      costSheet: string;
     }) => {
       const response = await apiRequest("POST", "/api/techpacks", {
         designId: data.designId,
-        measurements: JSON.parse(data.measurements),
-        fabricDetails: data.fabricDetails,
-        constructionNotes: data.constructionNotes,
+        designDescription: data.designDescription,
+        specificationSheet: JSON.parse(data.specificationSheet),
+        billOfMaterials: JSON.parse(data.billOfMaterials),
+        constructionDetails: data.constructionDetails,
+        patternNotes: data.patternNotes,
+        costSheet: JSON.parse(data.costSheet),
       });
       return response.json();
     },
     onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["/api/techpacks"] });
       toast({ title: "Tech pack created successfully" });
       setDesignId("");
-      setMeasurements("");
-      setFabricDetails("");
-      setConstructionNotes("");
+      setDesignDescription("");
+      setSpecificationSheet("");
+      setBillOfMaterials("");
+      setConstructionDetails("");
+      setPatternNotes("");
+      setCostSheet("");
     },
     onError: (error: Error) => {
       toast({ title: "Failed to create tech pack", description: error.message, variant: "destructive" });
@@ -567,7 +619,7 @@ function TechPackManager({ designs }: { designs: Design[] }) {
     <Card>
       <CardHeader>
         <CardTitle>Create Tech Pack</CardTitle>
-        <CardDescription>Add technical specifications for a design</CardDescription>
+        <CardDescription>Add complete technical specifications for a design</CardDescription>
       </CardHeader>
       <CardContent className="space-y-4">
         <div className="space-y-2">
@@ -587,43 +639,90 @@ function TechPackManager({ designs }: { designs: Design[] }) {
         </div>
 
         <div className="space-y-2">
-          <Label htmlFor="measurements">Measurements (JSON)</Label>
+          <Label htmlFor="design-description">Design Description</Label>
           <Textarea
-            id="measurements"
-            placeholder='{"chest": "38in", "waist": "32in"}'
-            value={measurements}
-            onChange={(e) => setMeasurements(e.target.value)}
-            data-testid="input-measurements"
+            id="design-description"
+            placeholder="A relaxed-fit pullover with rugby-inspired silhouette..."
+            value={designDescription}
+            onChange={(e) => setDesignDescription(e.target.value)}
+            data-testid="input-design-description"
           />
         </div>
 
         <div className="space-y-2">
-          <Label htmlFor="fabric">Fabric Details</Label>
+          <Label htmlFor="specification-sheet">Specification Sheet (JSON)</Label>
           <Textarea
-            id="fabric"
-            placeholder="100% Cotton, 200gsm..."
-            value={fabricDetails}
-            onChange={(e) => setFabricDetails(e.target.value)}
-            data-testid="input-fabric"
+            id="specification-sheet"
+            placeholder='{"chest": "44in", "length": "28in", "sleeve": "24in"}'
+            value={specificationSheet}
+            onChange={(e) => setSpecificationSheet(e.target.value)}
+            data-testid="input-specification-sheet"
           />
         </div>
 
         <div className="space-y-2">
-          <Label htmlFor="construction">Construction Notes</Label>
+          <Label htmlFor="bill-of-materials">Bill of Materials (JSON)</Label>
           <Textarea
-            id="construction"
-            placeholder="Double stitching, reinforced seams..."
-            value={constructionNotes}
-            onChange={(e) => setConstructionNotes(e.target.value)}
-            data-testid="input-construction"
+            id="bill-of-materials"
+            placeholder='[{"item": "Main fabric", "detail": "Cotton jersey"}, {"item": "Ribbed knit collar", "detail": "Matching color"}]'
+            value={billOfMaterials}
+            onChange={(e) => setBillOfMaterials(e.target.value)}
+            data-testid="input-bill-of-materials"
+          />
+        </div>
+
+        <div className="space-y-2">
+          <Label htmlFor="construction-details">Construction Details</Label>
+          <Textarea
+            id="construction-details"
+            placeholder="Cut-and-sew construction with wide panel stripes..."
+            value={constructionDetails}
+            onChange={(e) => setConstructionDetails(e.target.value)}
+            data-testid="input-construction-details"
+          />
+        </div>
+
+        <div className="space-y-2">
+          <Label htmlFor="pattern-notes">Pattern Notes</Label>
+          <Textarea
+            id="pattern-notes"
+            placeholder="The hem sits slightly cropped for a balanced, modern proportion..."
+            value={patternNotes}
+            onChange={(e) => setPatternNotes(e.target.value)}
+            data-testid="input-pattern-notes"
+          />
+        </div>
+
+        <div className="space-y-2">
+          <Label htmlFor="cost-sheet">Cost Sheet (JSON)</Label>
+          <Textarea
+            id="cost-sheet"
+            placeholder='{"materials": 12.50, "labor": 8.00, "total": 20.50}'
+            value={costSheet}
+            onChange={(e) => setCostSheet(e.target.value)}
+            data-testid="input-cost-sheet"
           />
         </div>
 
         <Button
           onClick={() =>
-            createMutation.mutate({ designId, measurements, fabricDetails, constructionNotes })
+            createMutation.mutate({
+              designId,
+              designDescription,
+              specificationSheet,
+              billOfMaterials,
+              constructionDetails,
+              patternNotes,
+              costSheet,
+            })
           }
-          disabled={!designId || !measurements || createMutation.isPending}
+          disabled={
+            !designId ||
+            !specificationSheet ||
+            !billOfMaterials ||
+            !costSheet ||
+            createMutation.isPending
+          }
           className="w-full"
           data-testid="button-create-techpack"
         >
