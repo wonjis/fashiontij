@@ -27,7 +27,7 @@ export default function Landing() {
             FashionFlat AI
           </h1>
           <p className="text-white/80 text-xl italic">
-            Turn your rough sketch into a flat sketch in seconds.
+            Turn your rough sketch into a flat sketch with documentation in seconds.
           </p>
         </div>
 
