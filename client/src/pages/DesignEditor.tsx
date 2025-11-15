@@ -254,15 +254,15 @@ export default function DesignEditor() {
 
                   <AccordionItem value="construction" className="bg-[#2a1f3e] rounded-lg px-4 border-none">
                     <AccordionTrigger>Construction details</AccordionTrigger>
-                    <AccordionContent className="text-sm text-white/80">
+                    <AccordionContent className="text-sm text-white/80 whitespace-pre-wrap">
                       {techPack?.constructionDetails || "Cut-and-sew construction with wide panel stripes; front and back panels aligned for stripe continuity."}
                     </AccordionContent>
                   </AccordionItem>
 
                   <AccordionItem value="pattern" className="bg-[#2a1f3e] rounded-lg px-4 border-none">
                     <AccordionTrigger>Pattern & fit notes</AccordionTrigger>
-                    <AccordionContent className="text-sm text-white/80">
-                      The hem sits slightly cropped for a balanced, modern proportion.
+                    <AccordionContent className="text-sm text-white/80 whitespace-pre-wrap">
+                      {techPack?.patternNotes || "The hem sits slightly cropped for a balanced, modern proportion."}
                     </AccordionContent>
                   </AccordionItem>
 

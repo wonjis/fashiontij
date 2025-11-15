@@ -679,6 +679,7 @@ function TechPackManager({ designs }: { designs: Design[] }) {
             value={constructionDetails}
             onChange={(e) => setConstructionDetails(e.target.value)}
             data-testid="input-construction-details"
+            rows={5}
           />
         </div>
 
@@ -690,6 +691,7 @@ function TechPackManager({ designs }: { designs: Design[] }) {
             value={patternNotes}
             onChange={(e) => setPatternNotes(e.target.value)}
             data-testid="input-pattern-notes"
+            rows={5}
           />
         </div>
 
@@ -862,7 +864,7 @@ function EditTechPackDialog({ techPack, designs }: { techPack: TechPack; designs
               value={constructionDetails}
               onChange={(e) => setConstructionDetails(e.target.value)}
               data-testid="input-edit-construction-details"
-              rows={3}
+              rows={6}
             />
           </div>
           <div className="space-y-2">
@@ -871,7 +873,7 @@ function EditTechPackDialog({ techPack, designs }: { techPack: TechPack; designs
               value={patternNotes}
               onChange={(e) => setPatternNotes(e.target.value)}
               data-testid="input-edit-pattern-notes"
-              rows={3}
+              rows={6}
             />
           </div>
           <div className="space-y-2">
