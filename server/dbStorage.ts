@@ -112,6 +112,10 @@ export class DBStorage implements IStorage {
     return result[0];
   }
 
+  async getAllTechPacks(): Promise<TechPack[]> {
+    return db.select().from(techPacks);
+  }
+
   async getTechPack(designId: string): Promise<TechPack | undefined> {
     const result = await db.select().from(techPacks)
       .where(eq(techPacks.designId, designId)).limit(1);

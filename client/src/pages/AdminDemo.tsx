@@ -575,7 +575,6 @@ function TechPackManager({ designs }: { designs: Design[] }) {
 
   const { data: techPacks = [] } = useQuery<TechPack[]>({
     queryKey: ["/api/techpacks"],
-    enabled: false,
   });
 
   const createMutation = useMutation({
@@ -616,11 +615,12 @@ function TechPackManager({ designs }: { designs: Design[] }) {
   });
 
   return (
-    <Card>
-      <CardHeader>
-        <CardTitle>Create Tech Pack</CardTitle>
-        <CardDescription>Add complete technical specifications for a design</CardDescription>
-      </CardHeader>
+    <div className="grid gap-6 md:grid-cols-2">
+      <Card>
+        <CardHeader>
+          <CardTitle>Create Tech Pack</CardTitle>
+          <CardDescription>Add complete technical specifications for a design</CardDescription>
+        </CardHeader>
       <CardContent className="space-y-4">
         <div className="space-y-2">
           <Label>Design</Label>
@@ -731,6 +731,180 @@ function TechPackManager({ designs }: { designs: Design[] }) {
         </Button>
       </CardContent>
     </Card>
+
+    <Card>
+      <CardHeader>
+        <CardTitle>Existing Tech Packs</CardTitle>
+        <CardDescription>{techPacks.length} tech packs</CardDescription>
+      </CardHeader>
+      <CardContent>
+        <div className="space-y-3">
+          {techPacks.map((techPack) => {
+            const design = designs.find((d) => d.id === techPack.designId);
+            return (
+              <div
+                key={techPack.id}
+                className="p-3 rounded-md bg-muted"
+                data-testid={`techpack-${techPack.id}`}
+              >
+                <div className="flex items-center justify-between">
+                  <div className="flex-1 min-w-0">
+                    <p className="font-medium">{design?.name || "Unknown Design"}</p>
+                    {techPack.designDescription && (
+                      <p className="text-sm text-muted-foreground line-clamp-2 mt-1">
+                        {techPack.designDescription}
+                      </p>
+                    )}
+                  </div>
+                  <EditTechPackDialog techPack={techPack} designs={designs} />
+                </div>
+              </div>
+            );
+          })}
+          {techPacks.length === 0 && (
+            <p className="text-sm text-muted-foreground">No tech packs yet</p>
+          )}
+        </div>
+      </CardContent>
+    </Card>
+    </div>
+  );
+}
+
+function EditTechPackDialog({ techPack, designs }: { techPack: TechPack; designs: Design[] }) {
+  const { toast } = useToast();
+  const [open, setOpen] = useState(false);
+  const [designDescription, setDesignDescription] = useState(techPack.designDescription || "");
+  const [specificationSheet, setSpecificationSheet] = useState(
+    JSON.stringify(techPack.specificationSheet, null, 2)
+  );
+  const [billOfMaterials, setBillOfMaterials] = useState(
+    JSON.stringify(techPack.billOfMaterials, null, 2)
+  );
+  const [constructionDetails, setConstructionDetails] = useState(techPack.constructionDetails || "");
+  const [patternNotes, setPatternNotes] = useState(techPack.patternNotes || "");
+  const [costSheet, setCostSheet] = useState(JSON.stringify(techPack.costSheet, null, 2));
+
+  const updateMutation = useMutation({
+    mutationFn: async (data: {
+      designDescription: string;
+      specificationSheet: string;
+      billOfMaterials: string;
+      constructionDetails: string;
+      patternNotes: string;
+      costSheet: string;
+    }) => {
+      const response = await apiRequest("PATCH", `/api/techpacks/${techPack.id}`, {
+        designDescription: data.designDescription,
+        specificationSheet: JSON.parse(data.specificationSheet),
+        billOfMaterials: JSON.parse(data.billOfMaterials),
+        constructionDetails: data.constructionDetails,
+        patternNotes: data.patternNotes,
+        costSheet: JSON.parse(data.costSheet),
+      });
+      return response.json();
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["/api/techpacks"] });
+      toast({ title: "Tech pack updated successfully" });
+      setOpen(false);
+    },
+    onError: (error: Error) => {
+      toast({ title: "Failed to update tech pack", description: error.message, variant: "destructive" });
+    },
+  });
+
+  return (
+    <Dialog open={open} onOpenChange={setOpen}>
+      <DialogTrigger asChild>
+        <Button variant="ghost" size="icon" data-testid={`button-edit-techpack-${techPack.id}`}>
+          <Edit className="h-4 w-4" />
+        </Button>
+      </DialogTrigger>
+      <DialogContent className="max-w-2xl max-h-[80vh] overflow-y-auto">
+        <DialogHeader>
+          <DialogTitle>Edit Tech Pack</DialogTitle>
+          <DialogDescription>
+            Modify technical specifications for {designs.find((d) => d.id === techPack.designId)?.name}
+          </DialogDescription>
+        </DialogHeader>
+        <div className="space-y-4">
+          <div className="space-y-2">
+            <Label>Design Description</Label>
+            <Textarea
+              value={designDescription}
+              onChange={(e) => setDesignDescription(e.target.value)}
+              data-testid="input-edit-design-description"
+              rows={3}
+            />
+          </div>
+          <div className="space-y-2">
+            <Label>Specification Sheet (JSON)</Label>
+            <Textarea
+              value={specificationSheet}
+              onChange={(e) => setSpecificationSheet(e.target.value)}
+              data-testid="input-edit-specification-sheet"
+              rows={4}
+            />
+          </div>
+          <div className="space-y-2">
+            <Label>Bill of Materials (JSON)</Label>
+            <Textarea
+              value={billOfMaterials}
+              onChange={(e) => setBillOfMaterials(e.target.value)}
+              data-testid="input-edit-bill-of-materials"
+              rows={4}
+            />
+          </div>
+          <div className="space-y-2">
+            <Label>Construction Details</Label>
+            <Textarea
+              value={constructionDetails}
+              onChange={(e) => setConstructionDetails(e.target.value)}
+              data-testid="input-edit-construction-details"
+              rows={3}
+            />
+          </div>
+          <div className="space-y-2">
+            <Label>Pattern Notes</Label>
+            <Textarea
+              value={patternNotes}
+              onChange={(e) => setPatternNotes(e.target.value)}
+              data-testid="input-edit-pattern-notes"
+              rows={3}
+            />
+          </div>
+          <div className="space-y-2">
+            <Label>Cost Sheet (JSON)</Label>
+            <Textarea
+              value={costSheet}
+              onChange={(e) => setCostSheet(e.target.value)}
+              data-testid="input-edit-cost-sheet"
+              rows={3}
+            />
+          </div>
+          <Button
+            onClick={() =>
+              updateMutation.mutate({
+                designDescription,
+                specificationSheet,
+                billOfMaterials,
+                constructionDetails,
+                patternNotes,
+                costSheet,
+              })
+            }
+            disabled={
+              !specificationSheet || !billOfMaterials || !costSheet || updateMutation.isPending
+            }
+            className="w-full"
+            data-testid="button-save-techpack"
+          >
+            Save Changes
+          </Button>
+        </div>
+      </DialogContent>
+    </Dialog>
   );
 }
 

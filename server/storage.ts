@@ -32,6 +32,7 @@ export interface IStorage {
   createResourceItem(item: InsertResourceItem): Promise<ResourceItem>;
   updateResourceItem(id: string, item: Partial<InsertResourceItem>): Promise<ResourceItem | undefined>;
   
+  getAllTechPacks(): Promise<TechPack[]>;
   getTechPack(designId: string): Promise<TechPack | undefined>;
   createTechPack(techPack: InsertTechPack): Promise<TechPack>;
   updateTechPack(id: string, techPack: Partial<InsertTechPack>): Promise<TechPack | undefined>;
@@ -281,6 +282,10 @@ export class MemStorage implements IStorage {
     const updated = { ...item, ...updates };
     this.resourceItems.set(id, updated);
     return updated;
+  }
+
+  async getAllTechPacks(): Promise<TechPack[]> {
+    return Array.from(this.techPacks.values());
   }
 
   async getTechPack(designId: string): Promise<TechPack | undefined> {

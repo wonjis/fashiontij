@@ -227,9 +227,27 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  app.get("/api/techpacks", async (req, res) => {
+    try {
+      const techPacks = await storage.getAllTechPacks();
+      res.json(techPacks);
+    } catch (error: any) {
+      res.status(500).json({ message: error.message });
+    }
+  });
+
   app.post("/api/techpacks", async (req, res) => {
     try {
       const techPack = await storage.createTechPack(req.body);
+      res.json(techPack);
+    } catch (error: any) {
+      res.status(500).json({ message: error.message });
+    }
+  });
+
+  app.patch("/api/techpacks/:id", async (req, res) => {
+    try {
+      const techPack = await storage.updateTechPack(req.params.id, req.body);
       res.json(techPack);
     } catch (error: any) {
       res.status(500).json({ message: error.message });
