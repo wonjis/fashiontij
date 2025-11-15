@@ -30,22 +30,51 @@ export function ObjectUploader({
   children,
 }: ObjectUploaderProps) {
   const [showModal, setShowModal] = useState(false);
-  const [uppy] = useState(() =>
-    new Uppy({
+  const [uppy] = useState(() => {
+    const uppyInstance = new Uppy({
       restrictions: {
         maxNumberOfFiles,
         maxFileSize,
       },
       autoProceed: false,
+      onBeforeFileAdded: (currentFile) => {
+        console.log("File added to Uppy:", currentFile.name);
+        return currentFile;
+      },
     })
       .use(AwsS3, {
         shouldUseMultipart: false,
-        getUploadParameters: onGetUploadParameters,
+        getUploadParameters: async (file) => {
+          console.log("Uppy calling getUploadParameters for:", file.name);
+          try {
+            const result = await onGetUploadParameters(file);
+            console.log("getUploadParameters result:", result);
+            return result;
+          } catch (error) {
+            console.error("Error in getUploadParameters:", error);
+            throw error;
+          }
+        },
+      })
+      .on("upload", () => {
+        console.log("Upload started");
+      })
+      .on("upload-success", (file, response) => {
+        console.log("Upload success:", file?.name, response);
+      })
+      .on("upload-error", (file, error) => {
+        console.error("Upload error for", file?.name, ":", error);
+      })
+      .on("error", (error) => {
+        console.error("Uppy error:", error);
       })
       .on("complete", (result: UploadResult<Record<string, unknown>, Record<string, unknown>>) => {
+        console.log("Upload complete:", result);
         onComplete?.(result);
-      })
-  );
+      });
+    
+    return uppyInstance;
+  });
 
   return (
     <div>
