@@ -27,8 +27,10 @@ export interface IStorage {
   getResourceCategories(): Promise<ResourceCategory[]>;
   getResourceCategory(slug: string): Promise<ResourceCategory | undefined>;
   getResourceItems(categoryId: string): Promise<ResourceItem[]>;
+  getAllResourceItems(): Promise<ResourceItem[]>;
   getResourceItem(id: string): Promise<ResourceItem | undefined>;
   createResourceItem(item: InsertResourceItem): Promise<ResourceItem>;
+  updateResourceItem(id: string, item: Partial<InsertResourceItem>): Promise<ResourceItem | undefined>;
   
   getTechPack(designId: string): Promise<TechPack | undefined>;
   createTechPack(techPack: InsertTechPack): Promise<TechPack>;
@@ -253,6 +255,10 @@ export class MemStorage implements IStorage {
     return Array.from(this.resourceItems.values()).filter(i => i.categoryId === categoryId);
   }
 
+  async getAllResourceItems(): Promise<ResourceItem[]> {
+    return Array.from(this.resourceItems.values());
+  }
+
   async getResourceItem(id: string): Promise<ResourceItem | undefined> {
     return this.resourceItems.get(id);
   }
@@ -267,6 +273,14 @@ export class MemStorage implements IStorage {
     };
     this.resourceItems.set(id, item);
     return item;
+  }
+
+  async updateResourceItem(id: string, updates: Partial<InsertResourceItem>): Promise<ResourceItem | undefined> {
+    const item = this.resourceItems.get(id);
+    if (!item) return undefined;
+    const updated = { ...item, ...updates };
+    this.resourceItems.set(id, updated);
+    return updated;
   }
 
   async getTechPack(designId: string): Promise<TechPack | undefined> {

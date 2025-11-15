@@ -482,7 +482,7 @@ function ResourceManager({ resources }: { resources: ResourceItem[] }) {
       imageUrl: string;
       designData: string;
     }) => {
-      const response = await apiRequest("POST", "/api/resources", {
+      const response = await apiRequest("POST", "/api/resource-items", {
         name: data.name,
         categoryId: data.categoryId,
         imageUrl: data.imageUrl,

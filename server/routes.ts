@@ -27,6 +27,18 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  app.patch("/api/collections/:id", async (req, res) => {
+    try {
+      const collection = await storage.updateCollection(req.params.id, req.body);
+      if (!collection) {
+        return res.status(404).json({ message: "Collection not found" });
+      }
+      res.json(collection);
+    } catch (error: any) {
+      res.status(500).json({ message: error.message });
+    }
+  });
+
   app.get("/api/designs", async (req, res) => {
     try {
       const userId = "demo-user";
@@ -77,6 +89,15 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
   app.get("/api/resources", async (req, res) => {
     try {
+      const items = await storage.getAllResourceItems();
+      res.json(items);
+    } catch (error: any) {
+      res.status(500).json({ message: error.message });
+    }
+  });
+
+  app.get("/api/resource-categories", async (req, res) => {
+    try {
       const categories = await storage.getResourceCategories();
       res.json(categories);
     } catch (error: any) {
@@ -92,6 +113,27 @@ export async function registerRoutes(app: Express): Promise<Server> {
       }
       const items = await storage.getResourceItems(category.id);
       res.json({ category, items });
+    } catch (error: any) {
+      res.status(500).json({ message: error.message });
+    }
+  });
+
+  app.post("/api/resource-items", async (req, res) => {
+    try {
+      const item = await storage.createResourceItem(req.body);
+      res.json(item);
+    } catch (error: any) {
+      res.status(500).json({ message: error.message });
+    }
+  });
+
+  app.patch("/api/resource-items/:id", async (req, res) => {
+    try {
+      const item = await storage.updateResourceItem(req.params.id, req.body);
+      if (!item) {
+        return res.status(404).json({ message: "Resource item not found" });
+      }
+      res.json(item);
     } catch (error: any) {
       res.status(500).json({ message: error.message });
     }
@@ -180,6 +222,15 @@ export async function registerRoutes(app: Express): Promise<Server> {
     try {
       const techPack = await storage.getTechPack(req.params.id);
       res.json(techPack || null);
+    } catch (error: any) {
+      res.status(500).json({ message: error.message });
+    }
+  });
+
+  app.post("/api/techpacks", async (req, res) => {
+    try {
+      const techPack = await storage.createTechPack(req.body);
+      res.json(techPack);
     } catch (error: any) {
       res.status(500).json({ message: error.message });
     }

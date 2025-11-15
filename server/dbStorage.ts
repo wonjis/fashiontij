@@ -90,6 +90,10 @@ export class DBStorage implements IStorage {
     return db.select().from(resourceItems).where(eq(resourceItems.categoryId, categoryId));
   }
 
+  async getAllResourceItems(): Promise<ResourceItem[]> {
+    return db.select().from(resourceItems);
+  }
+
   async getResourceItem(id: string): Promise<ResourceItem | undefined> {
     const result = await db.select().from(resourceItems).where(eq(resourceItems.id, id)).limit(1);
     return result[0];
@@ -97,6 +101,14 @@ export class DBStorage implements IStorage {
 
   async createResourceItem(item: InsertResourceItem): Promise<ResourceItem> {
     const result = await db.insert(resourceItems).values(item).returning();
+    return result[0];
+  }
+
+  async updateResourceItem(id: string, updates: Partial<InsertResourceItem>): Promise<ResourceItem | undefined> {
+    const result = await db.update(resourceItems)
+      .set(updates)
+      .where(eq(resourceItems.id, id))
+      .returning();
     return result[0];
   }
 
