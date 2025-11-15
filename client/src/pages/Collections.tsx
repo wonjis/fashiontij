@@ -26,57 +26,56 @@ export default function Collections() {
   });
 
   return (
-    <div className="min-h-screen bg-[#0d001d] text-white">
-      <div className="flex h-screen">
-        <aside className="w-64 bg-[#1a0f2e] p-6 space-y-6">
-          <div className="flex items-center gap-3">
-            <div className="w-10 h-10 rounded-lg bg-[#bf60ff] flex items-center justify-center">
-              <span className="text-white text-xl font-bold">F</span>
-            </div>
+    <div className="h-screen bg-[#0d001d] text-white flex">
+      <aside className="w-64 bg-[#1a0f2e] p-6 space-y-6 flex-shrink-0">
+        <div className="flex items-center gap-3">
+          <div className="w-10 h-10 rounded-lg bg-[#bf60ff] flex items-center justify-center">
+            <span className="text-white text-xl font-bold">F</span>
           </div>
+        </div>
 
-          <nav className="space-y-2">
+        <nav className="space-y-2">
+          <Button
+            variant="ghost"
+            className="w-full justify-start bg-[#2a1f3e] hover:bg-[#2a1f3e]/80 text-white"
+            onClick={() => setLocation("/resources")}
+          >
+            Resources
+          </Button>
+          <Button
+            variant="ghost"
+            className="w-full justify-start text-white/60 hover:text-white hover:bg-[#2a1f3e]/50"
+          >
+            Recent
+          </Button>
+        </nav>
+
+        <div>
+          <h3 className="text-sm font-semibold text-white/60 mb-2">Folders</h3>
+          <div className="space-y-1">
             <Button
               variant="ghost"
-              className="w-full justify-start bg-[#2a1f3e] hover:bg-[#2a1f3e]/80 text-white"
-              onClick={() => setLocation("/resources")}
+              className="w-full justify-start text-white/80 hover:text-white hover:bg-[#2a1f3e]/50 text-sm"
             >
-              Resources
+              SS26 collection
             </Button>
             <Button
               variant="ghost"
-              className="w-full justify-start text-white/60 hover:text-white hover:bg-[#2a1f3e]/50"
+              className="w-full justify-start text-white/60 hover:text-white hover:bg-[#2a1f3e]/50 text-sm"
             >
-              Recent
+              AW25 men's
             </Button>
-          </nav>
-
-          <div>
-            <h3 className="text-sm font-semibold text-white/60 mb-2">Folders</h3>
-            <div className="space-y-1">
-              <Button
-                variant="ghost"
-                className="w-full justify-start text-white/80 hover:text-white hover:bg-[#2a1f3e]/50 text-sm"
-              >
-                SS26 collection
-              </Button>
-              <Button
-                variant="ghost"
-                className="w-full justify-start text-white/60 hover:text-white hover:bg-[#2a1f3e]/50 text-sm"
-              >
-                AW25 men's
-              </Button>
-              <Button
-                variant="ghost"
-                className="w-full justify-start text-white/60 hover:bg-[#2a1f3e]/50 text-sm"
-              >
-                SS25 women's
-              </Button>
-            </div>
+            <Button
+              variant="ghost"
+              className="w-full justify-start text-white/60 hover:bg-[#2a1f3e]/50 text-sm"
+            >
+              SS25 women's
+            </Button>
           </div>
-        </aside>
+        </div>
+      </aside>
 
-        <main className="flex-1 p-8">
+      <main className="flex-1 p-8 overflow-y-auto">
           <div className="flex items-center justify-between mb-8">
             <div className="flex-1 max-w-md relative">
               <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-white/40" />
@@ -125,7 +124,6 @@ export default function Collections() {
             )}
           </div>
         </main>
-      </div>
     </div>
   );
 }
