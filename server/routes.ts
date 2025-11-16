@@ -87,10 +87,13 @@ export async function registerRoutes(app: Express): Promise<Server> {
         });
       }
 
-      console.log("Generating technical flat from sketch...");
+      console.log("Generating technical flat and tech spec from sketch...");
 
       try {
-        const generatedImageDataUrl = await generateTechnicalFlat(originalSketchUrl);
+        const [generatedImageDataUrl, techSpec] = await Promise.all([
+          generateTechnicalFlat(originalSketchUrl),
+          generateTechSpec("New Design", "General", "SS26")
+        ]);
         
         const base64Data = generatedImageDataUrl.split(',')[1];
         if (!base64Data) {
@@ -121,19 +124,21 @@ export async function registerRoutes(app: Express): Promise<Server> {
         
         await objectStorageService.setObjectAcl(objectPath, "public");
         
-        console.log("Technical flat generated:", technicalFlatUrl);
+        console.log("Technical flat and tech spec generated:", technicalFlatUrl);
         
-        res.json({ technicalFlatUrl });
+        res.json({ technicalFlatUrl, techSpec });
       } catch (error: any) {
-        console.error("Failed to generate technical flat:", error);
+        console.error("Failed to generate design:", error);
         
         const isValidationError = error.message?.includes("Failed to analyze") || 
-                                   error.message?.includes("Failed to generate");
+                                   error.message?.includes("Failed to generate") ||
+                                   error.message?.includes("validation failed") ||
+                                   error.message?.includes("parsing failed");
         
         return res.status(isValidationError ? 422 : 500).json({ 
           message: isValidationError 
-            ? "AI failed to generate technical flat from your sketch. Please try again with a clearer image."
-            : "Failed to generate technical flat image",
+            ? "AI failed to generate design from your sketch. Please try again with a clearer image."
+            : "Failed to generate design",
           details: error.message,
           retryable: true
         });
@@ -150,48 +155,19 @@ export async function registerRoutes(app: Express): Promise<Server> {
   app.post("/api/designs/create", async (req, res) => {
     try {
       const userId = "demo-user";
-      const { collectionId, name, category, season, originalSketchUrl, technicalFlatUrl } = req.body;
+      const { collectionId, name, category, season, originalSketchUrl, technicalFlatUrl, techSpec } = req.body;
 
-      if (!collectionId || !name || !category || !season || !originalSketchUrl || !technicalFlatUrl) {
+      if (!collectionId || !name || !category || !season || !originalSketchUrl || !technicalFlatUrl || !techSpec) {
         return res.status(400).json({ 
           message: "Missing required fields",
-          details: "All fields (collectionId, name, category, season, originalSketchUrl, technicalFlatUrl) are required"
+          details: "All fields (collectionId, name, category, season, originalSketchUrl, technicalFlatUrl, techSpec) are required"
         });
       }
 
-      console.log("Creating design with AI:", { name, category, season });
-
-      let techSpec;
+      console.log("Saving design to database:", { name, category, season });
 
       try {
-        console.log("Step 1: Generating tech spec with GPT-4...");
-        techSpec = await generateTechSpec(name, category, season);
-        
-        if (!techSpec || !techSpec.designDescription) {
-          throw new Error("Tech spec generation returned invalid data");
-        }
-        
-        console.log("Tech spec generated successfully");
-      } catch (error: any) {
-        console.error("Failed to generate tech spec:", error);
-        
-        const isValidationError = error.message?.includes("validation failed") || 
-                                   error.message?.includes("parsing failed") ||
-                                   error.message?.includes("Invalid") ||
-                                   error.message?.includes("Missing");
-        
-        return res.status(isValidationError ? 422 : 500).json({ 
-          message: isValidationError 
-            ? "AI failed to generate tech specs. Please try again."
-            : "Failed to generate tech specs",
-          details: error.message,
-          step: "tech_spec_generation",
-          retryable: true
-        });
-      }
-
-      try {
-        console.log("Step 2: Creating design in database...");
+        console.log("Step 1: Creating design in database...");
         const design = await storage.createDesign({
           userId,
           collectionId,
@@ -206,7 +182,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
         });
         console.log("Design created:", design.id);
 
-        console.log("Step 3: Creating tech pack in database...");
+        console.log("Step 2: Creating tech pack in database...");
         const techPack = await storage.createTechPack({
           designId: design.id,
           designDescription: techSpec.designDescription,

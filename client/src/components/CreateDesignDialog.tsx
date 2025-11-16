@@ -38,6 +38,7 @@ export function CreateDesignDialog({ onSuccess }: CreateDesignDialogProps) {
   const [creationStep, setCreationStep] = useState<string>("");
   const [isGeneratingFlat, setIsGeneratingFlat] = useState(false);
   const [generatedTechnicalFlatUrl, setGeneratedTechnicalFlatUrl] = useState<string>("");
+  const [generatedTechSpec, setGeneratedTechSpec] = useState<any>(null);
   const { toast } = useToast();
 
   const { data: collections = [] } = useQuery({
@@ -52,7 +53,7 @@ export function CreateDesignDialog({ onSuccess }: CreateDesignDialogProps) {
   const handleImageUpload = async (imageUrl: string) => {
     setUploadedImageUrl(imageUrl);
     setIsGeneratingFlat(true);
-    setCreationStep("Analyzing sketch and generating technical flat...");
+    setCreationStep("Generating technical flat and tech specs with AI...");
 
     try {
       const response = await fetch("/api/designs/generate-flat", {
@@ -67,21 +68,22 @@ export function CreateDesignDialog({ onSuccess }: CreateDesignDialogProps) {
 
       if (!response.ok) {
         const errorData = await response.json().catch(() => ({}));
-        throw new Error(errorData.details || errorData.message || "Failed to generate technical flat");
+        throw new Error(errorData.details || errorData.message || "Failed to generate design");
       }
 
       const result = await response.json();
       setGeneratedTechnicalFlatUrl(result.technicalFlatUrl);
+      setGeneratedTechSpec(result.techSpec);
       
       toast({
-        title: "Technical flat ready!",
-        description: "You can now fill in the details and create your design",
+        title: "AI generation complete!",
+        description: "Technical flat and tech specs are ready. Fill in the details and click Create.",
       });
     } catch (error) {
-      console.error("Generate flat error:", error);
+      console.error("Generate error:", error);
       toast({
         title: "Generation failed",
-        description: error instanceof Error ? error.message : "Failed to generate technical flat",
+        description: error instanceof Error ? error.message : "Failed to generate design",
         variant: "destructive",
       });
       setUploadedImageUrl("");
@@ -101,17 +103,17 @@ export function CreateDesignDialog({ onSuccess }: CreateDesignDialogProps) {
       return;
     }
 
-    if (!generatedTechnicalFlatUrl) {
+    if (!generatedTechnicalFlatUrl || !generatedTechSpec) {
       toast({
         title: "Please wait",
-        description: "Technical flat is still being generated",
+        description: "AI generation is still in progress",
         variant: "destructive",
       });
       return;
     }
 
     setIsCreating(true);
-    setCreationStep("Creating tech specs...");
+    setCreationStep("Saving design...");
 
     try {
       const response = await fetch("/api/designs/create", {
@@ -126,6 +128,7 @@ export function CreateDesignDialog({ onSuccess }: CreateDesignDialogProps) {
           season,
           originalSketchUrl: uploadedImageUrl,
           technicalFlatUrl: generatedTechnicalFlatUrl,
+          techSpec: generatedTechSpec,
         }),
       });
 
@@ -171,6 +174,7 @@ export function CreateDesignDialog({ onSuccess }: CreateDesignDialogProps) {
     setCategory("");
     setSeason("");
     setGeneratedTechnicalFlatUrl("");
+    setGeneratedTechSpec(null);
     setIsGeneratingFlat(false);
   };
 
@@ -200,8 +204,8 @@ export function CreateDesignDialog({ onSuccess }: CreateDesignDialogProps) {
                 {creationStep}
               </div>
             )}
-            {uploadedImageUrl && !isGeneratingFlat && generatedTechnicalFlatUrl && (
-              <p className="text-sm text-green-600 dark:text-green-400">✓ Technical flat ready</p>
+            {uploadedImageUrl && !isGeneratingFlat && generatedTechnicalFlatUrl && generatedTechSpec && (
+              <p className="text-sm text-green-600 dark:text-green-400">✓ AI generation complete</p>
             )}
           </div>
 
@@ -265,7 +269,7 @@ export function CreateDesignDialog({ onSuccess }: CreateDesignDialogProps) {
           </Button>
           <Button
             onClick={handleCreate}
-            disabled={isCreating || isGeneratingFlat || !generatedTechnicalFlatUrl}
+            disabled={isCreating || isGeneratingFlat || !generatedTechnicalFlatUrl || !generatedTechSpec}
             data-testid="button-create"
           >
             {isCreating ? (
