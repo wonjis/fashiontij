@@ -164,7 +164,7 @@ Output a clean, structured technical description that DALL·E can use to draw an
 Do NOT generate the image; ONLY output the technical description text.`;
 
   const analysisResponse = await openai.chat.completions.create({
-    model: "gpt-4-vision-preview",
+    model: "gpt-4o",
     messages: [
       {
         role: "user",
