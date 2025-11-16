@@ -95,14 +95,14 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
       try {
         console.log("Step 1: Generating technical flat from sketch...");
-        const generatedImageUrl = await generateTechnicalFlat(originalSketchUrl);
+        const generatedImageDataUrl = await generateTechnicalFlat(originalSketchUrl);
         
-        console.log("Step 2: Downloading generated image...");
-        const imageResponse = await fetch(generatedImageUrl);
-        if (!imageResponse.ok) {
-          throw new Error(`Failed to download generated image: ${imageResponse.statusText}`);
+        console.log("Step 2: Extracting base64 data from data URL...");
+        const base64Data = generatedImageDataUrl.split(',')[1];
+        if (!base64Data) {
+          throw new Error("Failed to extract base64 data from generated image");
         }
-        const imageBuffer = await imageResponse.arrayBuffer();
+        const imageBuffer = Buffer.from(base64Data, 'base64');
         
         console.log("Step 3: Uploading to Object Storage...");
         const objectStorageService = new ObjectStorageService();
@@ -116,7 +116,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
           headers: {
             "Content-Type": "image/png",
           },
-          body: Buffer.from(imageBuffer),
+          body: imageBuffer,
         });
         
         if (!uploadResponse.ok) {

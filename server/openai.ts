@@ -228,15 +228,16 @@ ${technicalDescription}`;
     size: "1024x1024",
   });
 
-  console.log("Image generation response:", JSON.stringify(imageResponse, null, 2));
-
-  const imageUrl = imageResponse.data?.[0]?.url;
-  if (!imageUrl) {
+  const b64Json = imageResponse.data?.[0]?.b64_json;
+  if (!b64Json) {
     console.error("Image response data:", imageResponse.data);
-    throw new Error("Failed to generate technical flat image - no URL in response");
+    throw new Error("Failed to generate technical flat image - no image data in response");
   }
 
-  return imageUrl;
+  const imageBuffer = Buffer.from(b64Json, 'base64');
+  const dataUrl = `data:image/png;base64,${b64Json}`;
+  
+  return dataUrl;
 }
 
 function parseTechSpec(content: string): TechSpecResult {
