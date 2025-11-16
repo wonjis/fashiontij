@@ -18,6 +18,7 @@ export default function DesignEditor() {
   const [showAiModal, setShowAiModal] = useState(false);
   const [aiPrompt, setAiPrompt] = useState("");
   const [isGeneratingTechPack, setIsGeneratingTechPack] = useState(false);
+  const [chatMessages, setChatMessages] = useState<Array<{ role: 'user' | 'assistant', content: string, imageUrl?: string }>>([]);
   const { toast } = useToast();
 
   const { data: design } = useQuery({
@@ -28,6 +29,26 @@ export default function DesignEditor() {
       return res.json();
     },
   });
+
+  const isOutwearDemo = design?.name === "SS26 - Outwear #1";
+
+  useEffect(() => {
+    if (isOutwearDemo && chatMessages.length === 0) {
+      setChatMessages([
+        {
+          role: 'user',
+          content: 'I want to make the jacket 1 inch longer'
+        },
+        {
+          role: 'assistant',
+          content: "Sure! I've modified the flat sketch of the jacket and made it 1 inch longer.",
+          imageUrl: design?.designImageUrl
+        }
+      ]);
+    } else if (!isOutwearDemo && chatMessages.length > 0) {
+      setChatMessages([]);
+    }
+  }, [isOutwearDemo, design?.designImageUrl, chatMessages.length]);
 
   const { data: techPack, error: techPackError } = useQuery({
     queryKey: ["techpack", designId],
@@ -102,9 +123,9 @@ export default function DesignEditor() {
 
   const quickPrompts = [
     "Generate construction details based on the design",
-    "Design a casual hoodie with kangaroo pocket",
     "Create a midi skirt with pleats",
-    "Generate a bomber jacket with ribbed cuffs",
+    "I want to make the jacket longer",
+    "Make the pants waist 1/2 inch smaller",
   ];
 
   return (
@@ -372,15 +393,42 @@ export default function DesignEditor() {
           </DialogHeader>
 
           <div className="space-y-4">
-            <div className="bg-[#2a1f3e]/50 rounded-lg p-4">
-              <div className="flex items-start gap-2 mb-2">
-                <Sparkles className="w-5 h-5 text-[#bf60ff] mt-1" />
-                <div>
-                  <div className="font-semibold">AI Assistant</div>
-                  <div className="text-sm text-white/80">Hello! How can I help you?</div>
+            {chatMessages.length === 0 ? (
+              <div className="bg-[#2a1f3e]/50 rounded-lg p-4">
+                <div className="flex items-start gap-2 mb-2">
+                  <Sparkles className="w-5 h-5 text-[#bf60ff] mt-1" />
+                  <div>
+                    <div className="font-semibold">AI Assistant</div>
+                    <div className="text-sm text-white/80">Hello! How can I help you?</div>
+                  </div>
                 </div>
               </div>
-            </div>
+            ) : (
+              <div className="space-y-3 max-h-[400px] overflow-y-auto">
+                {chatMessages.map((msg, idx) => (
+                  <div key={idx} className={`rounded-lg p-4 ${msg.role === 'user' ? 'bg-[#bf60ff] text-white ml-12' : 'bg-[#2a1f3e]/50'}`}>
+                    {msg.role === 'assistant' && (
+                      <div className="flex items-start gap-2 mb-2">
+                        <Sparkles className="w-5 h-5 text-[#bf60ff] mt-1" />
+                        <div className="font-semibold">AI Assistant</div>
+                      </div>
+                    )}
+                    <div className="text-sm">{msg.content}</div>
+                    {msg.imageUrl && (
+                      <div className="mt-4">
+                        <div className="bg-[#0d001d] rounded-lg p-6 flex items-center justify-center">
+                          <img src={msg.imageUrl} alt="Generated design" className="max-h-64 object-contain" />
+                        </div>
+                        <Button className="w-full mt-3 bg-[#bf60ff] hover:bg-[#bf60ff]/90 text-white">
+                          <Download className="w-4 h-4 mr-2" />
+                          Import as Layer
+                        </Button>
+                      </div>
+                    )}
+                  </div>
+                ))}
+              </div>
+            )}
 
             <div>
               <h3 className="text-sm font-semibold mb-3">Quick prompts:</h3>
