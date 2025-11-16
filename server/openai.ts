@@ -228,9 +228,12 @@ ${technicalDescription}`;
     size: "1024x1024",
   });
 
+  console.log("Image generation response:", JSON.stringify(imageResponse, null, 2));
+
   const imageUrl = imageResponse.data?.[0]?.url;
   if (!imageUrl) {
-    throw new Error("Failed to generate technical flat image");
+    console.error("Image response data:", imageResponse.data);
+    throw new Error("Failed to generate technical flat image - no URL in response");
   }
 
   return imageUrl;
