@@ -36,6 +36,8 @@ export function CreateDesignDialog({ onSuccess }: CreateDesignDialogProps) {
   const [season, setSeason] = useState("");
   const [isCreating, setIsCreating] = useState(false);
   const [creationStep, setCreationStep] = useState<string>("");
+  const [isGeneratingFlat, setIsGeneratingFlat] = useState(false);
+  const [generatedTechnicalFlatUrl, setGeneratedTechnicalFlatUrl] = useState<string>("");
   const { toast } = useToast();
 
   const { data: collections = [] } = useQuery({
@@ -47,6 +49,48 @@ export function CreateDesignDialog({ onSuccess }: CreateDesignDialogProps) {
     },
   });
 
+  const handleImageUpload = async (imageUrl: string) => {
+    setUploadedImageUrl(imageUrl);
+    setIsGeneratingFlat(true);
+    setCreationStep("Analyzing sketch and generating technical flat...");
+
+    try {
+      const response = await fetch("/api/designs/generate-flat", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          originalSketchUrl: imageUrl,
+        }),
+      });
+
+      if (!response.ok) {
+        const errorData = await response.json().catch(() => ({}));
+        throw new Error(errorData.details || errorData.message || "Failed to generate technical flat");
+      }
+
+      const result = await response.json();
+      setGeneratedTechnicalFlatUrl(result.technicalFlatUrl);
+      
+      toast({
+        title: "Technical flat ready!",
+        description: "You can now fill in the details and create your design",
+      });
+    } catch (error) {
+      console.error("Generate flat error:", error);
+      toast({
+        title: "Generation failed",
+        description: error instanceof Error ? error.message : "Failed to generate technical flat",
+        variant: "destructive",
+      });
+      setUploadedImageUrl("");
+    } finally {
+      setIsGeneratingFlat(false);
+      setCreationStep("");
+    }
+  };
+
   const handleCreate = async () => {
     if (!uploadedImageUrl || !selectedCollection || !designName || !category || !season) {
       toast({
@@ -57,11 +101,19 @@ export function CreateDesignDialog({ onSuccess }: CreateDesignDialogProps) {
       return;
     }
 
+    if (!generatedTechnicalFlatUrl) {
+      toast({
+        title: "Please wait",
+        description: "Technical flat is still being generated",
+        variant: "destructive",
+      });
+      return;
+    }
+
     setIsCreating(true);
-    setCreationStep("Analyzing sketch...");
+    setCreationStep("Creating tech specs...");
 
     try {
-      const startTime = Date.now();
       const response = await fetch("/api/designs/create", {
         method: "POST",
         headers: {
@@ -73,18 +125,9 @@ export function CreateDesignDialog({ onSuccess }: CreateDesignDialogProps) {
           category,
           season,
           originalSketchUrl: uploadedImageUrl,
+          technicalFlatUrl: generatedTechnicalFlatUrl,
         }),
       });
-
-      const elapsedTime = Date.now() - startTime;
-      
-      if (elapsedTime < 2000) {
-        setCreationStep("Analyzing sketch...");
-      } else if (elapsedTime < 8000) {
-        setCreationStep("Generating technical flat...");
-      } else {
-        setCreationStep("Creating tech specs...");
-      }
 
       if (!response.ok) {
         const errorData = await response.json().catch(() => ({}));
@@ -127,6 +170,8 @@ export function CreateDesignDialog({ onSuccess }: CreateDesignDialogProps) {
     setDesignName("");
     setCategory("");
     setSeason("");
+    setGeneratedTechnicalFlatUrl("");
+    setIsGeneratingFlat(false);
   };
 
   return (
@@ -146,11 +191,17 @@ export function CreateDesignDialog({ onSuccess }: CreateDesignDialogProps) {
         <div className="grid gap-4 py-4">
           <div className="grid gap-2">
             <Label htmlFor="upload">Upload Sketch</Label>
-            <ObjectUploader onUploadSuccess={setUploadedImageUrl}>
+            <ObjectUploader onUploadSuccess={handleImageUpload}>
               {uploadedImageUrl ? "Change Image" : "Browse Files"}
             </ObjectUploader>
-            {uploadedImageUrl && (
-              <p className="text-sm text-muted-foreground">Image uploaded successfully</p>
+            {isGeneratingFlat && (
+              <div className="flex items-center gap-2 text-sm text-muted-foreground">
+                <Loader2 className="h-3 w-3 animate-spin" />
+                {creationStep}
+              </div>
+            )}
+            {uploadedImageUrl && !isGeneratingFlat && generatedTechnicalFlatUrl && (
+              <p className="text-sm text-green-600 dark:text-green-400">✓ Technical flat ready</p>
             )}
           </div>
 
@@ -214,7 +265,7 @@ export function CreateDesignDialog({ onSuccess }: CreateDesignDialogProps) {
           </Button>
           <Button
             onClick={handleCreate}
-            disabled={isCreating}
+            disabled={isCreating || isGeneratingFlat || !generatedTechnicalFlatUrl}
             data-testid="button-create"
           >
             {isCreating ? (
