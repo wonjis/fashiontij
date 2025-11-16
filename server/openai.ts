@@ -223,25 +223,32 @@ Do NOT generate the image; ONLY output the technical description text.`;
   const textToImagePrompt = `You are creating a professional fashion technical flat (tech pack illustration).
 
 CRITICAL REQUIREMENTS:
-1. TRANSPARENT BACKGROUND - The background MUST be 100% transparent (alpha channel = 0). NO white background, NO colored background. Use PNG transparency.
-2. BLACK LINES ONLY - Draw the garment using clean black vector-style lines.
-3. FRONT VIEW ONLY - Draw ONLY the front panel/view of the garment. Do NOT draw the back view.
-4. OUTPUT: PNG format with full alpha transparency support.
+1. TRANSPARENT BACKGROUND - Only the area OUTSIDE the garment should be transparent. The background around the garment must be 100% transparent (alpha = 0).
+2. WHITE FILL INSIDE GARMENT - The garment interior must be filled with pure white color.
+3. BLACK LINES - Draw all garment outlines, seams, details with clean black lines.
+4. FRONT VIEW ONLY - Draw ONLY the front panel/view of the garment. Do NOT draw the back view.
+5. OUTPUT: PNG format with transparent background.
 
 GARMENT TO DRAW:
 ${technicalDescription}
 
 DRAWING SPECIFICATIONS:
-- Style: Professional fashion technical flat (like a blueprint)
-- Lines: Clean black linework only, consistent line weight
-- Background: MUST BE TRANSPARENT (not white, not any color)
-- Detail: Show all seams, stitching, topstitching, panels, pockets, closures, hardware
+- Style: Professional fashion technical flat (tech pack illustration style)
+- Background: Transparent (only outside the garment)
+- Garment fill: Solid white color inside the garment shape
+- Lines: Clean black linework for all edges, seams, stitching, topstitching, panels, pockets, closures, hardware
+- Line weight: Consistent thickness throughout
 - View: FRONT VIEW ONLY (앞판만)
-- NO fills, NO shading, NO textures, NO gradients, NO colors
+- NO gradients, NO shading, NO textures
 - NO model, NO human figure, NO scenery
 - NO back view, NO side view
 
-The final image must be a PNG with a transparent background showing only the front-view black-lined garment technical flat.`;
+Example structure:
+- Transparent pixels = area outside garment outline
+- White pixels = filled area inside garment
+- Black pixels = garment outline, seams, details
+
+The final image must be a PNG showing a front-view technical flat with transparent background, white-filled garment, and black linework.`;
 
   const imageResponse = await openai.images.generate({
     model: "gpt-image-1",
@@ -257,11 +264,7 @@ The final image must be a PNG with a transparent background showing only the fro
   }
 
   const imageBuffer = Buffer.from(b64Json, 'base64');
-  
-  console.log("Converting white background to transparent...");
-  const processedBuffer = await makeWhiteTransparent(imageBuffer);
-  const processedBase64 = processedBuffer.toString('base64');
-  const dataUrl = `data:image/png;base64,${processedBase64}`;
+  const dataUrl = `data:image/png;base64,${b64Json}`;
   
   return dataUrl;
 }
