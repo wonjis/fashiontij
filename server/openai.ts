@@ -98,7 +98,7 @@ The JSON must have this exact structure:
 Rules:
 - specificationSheet: Include 8-14 measurements based on garment type (tops: chest, shoulder_width, back_length, sleeve_length, etc. / pants: waist, hip, rise, inseam, etc.)
 - billOfMaterials: Include main fabric, lining (if needed), trims, closures, thread, interfacing, labels
-- constructionDetails and patternNotes: Write in Korean, use \\n for line breaks, 6-12 bullet points each
+- constructionDetails and patternNotes: Write in English, use \\n for line breaks, 6-12 bullet points each
 - costSheet: total must equal sum of materials + labor + trims + overhead
 - All JSON must be valid (no trailing commas)`;
 
@@ -184,21 +184,21 @@ Do NOT generate the image; ONLY output the technical description text.`;
 
   const textToImagePrompt = `Create a hi-fidelity technical flat illustration of the garment described in the text.
 Follow professional fashion technical-drawing standards.
-Render the illustration with a transparent background (no white fill, no texture, no shadows).
+Render the illustration with a black background (non-clothing parts must be pure black, no white fill, no texture, no shadows).
 
 Drawing Requirements
 
-Clean vector-style black linework only
+Clean vector-style white linework only (visible on black background)
 
-Transparent background (PNG)
+Black background (PNG) - all non-clothing areas must be pure black
 
-No shading, no color, no textures
+No shading, no color fills, no textures
 
 Accurate proportions based on the description
 
 Front view, and back view if information is provided
 
-Do not include the model or the scene—only the garment flat
+Do not include the model or the scene—only the garment flat on black background
 
 Technical Construction Rules
 
