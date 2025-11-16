@@ -87,13 +87,10 @@ export async function registerRoutes(app: Express): Promise<Server> {
         });
       }
 
-      console.log("Generating technical flat and tech spec from sketch...");
+      console.log("Generating technical flat from sketch...");
 
       try {
-        const [generatedImageDataUrl, techSpec] = await Promise.all([
-          generateTechnicalFlat(originalSketchUrl),
-          generateTechSpec("New Design", "General", "SS26")
-        ]);
+        const generatedImageDataUrl = await generateTechnicalFlat(originalSketchUrl);
         
         const base64Data = generatedImageDataUrl.split(',')[1];
         if (!base64Data) {
@@ -124,21 +121,19 @@ export async function registerRoutes(app: Express): Promise<Server> {
         
         await objectStorageService.setObjectAcl(objectPath, "public");
         
-        console.log("Technical flat and tech spec generated:", technicalFlatUrl);
+        console.log("Technical flat generated:", technicalFlatUrl);
         
-        res.json({ technicalFlatUrl, techSpec });
+        res.json({ technicalFlatUrl });
       } catch (error: any) {
-        console.error("Failed to generate design:", error);
+        console.error("Failed to generate technical flat:", error);
         
         const isValidationError = error.message?.includes("Failed to analyze") || 
-                                   error.message?.includes("Failed to generate") ||
-                                   error.message?.includes("validation failed") ||
-                                   error.message?.includes("parsing failed");
+                                   error.message?.includes("Failed to generate");
         
         return res.status(isValidationError ? 422 : 500).json({ 
           message: isValidationError 
-            ? "AI failed to generate design from your sketch. Please try again with a clearer image."
-            : "Failed to generate design",
+            ? "AI failed to generate technical flat from your sketch. Please try again with a clearer image."
+            : "Failed to generate technical flat",
           details: error.message,
           retryable: true
         });
@@ -155,26 +150,25 @@ export async function registerRoutes(app: Express): Promise<Server> {
   app.post("/api/designs/create", async (req, res) => {
     try {
       const userId = "demo-user";
-      const { collectionId, name, category, season, originalSketchUrl, technicalFlatUrl, techSpec } = req.body;
+      const { collectionId, name, category, season, originalSketchUrl, technicalFlatUrl } = req.body;
 
-      if (!collectionId || !name || !category || !season || !originalSketchUrl || !technicalFlatUrl || !techSpec) {
+      if (!collectionId || !name || !category || !season || !originalSketchUrl || !technicalFlatUrl) {
         return res.status(400).json({ 
           message: "Missing required fields",
-          details: "All fields (collectionId, name, category, season, originalSketchUrl, technicalFlatUrl, techSpec) are required"
+          details: "All fields (collectionId, name, category, season, originalSketchUrl, technicalFlatUrl) are required"
         });
       }
 
-      console.log("Saving design to database:", { name, category, season });
+      console.log("Creating design:", { name, category, season });
 
       try {
-        console.log("Step 1: Creating design in database...");
         const design = await storage.createDesign({
           userId,
           collectionId,
           name,
           category,
           season,
-          description: techSpec.designDescription,
+          description: "Generating AI tech specs...",
           originalSketchUrl,
           designImageUrl: technicalFlatUrl,
           layers: [],
@@ -182,9 +176,50 @@ export async function registerRoutes(app: Express): Promise<Server> {
         });
         console.log("Design created:", design.id);
 
-        console.log("Step 2: Creating tech pack in database...");
+        res.json({ design });
+      } catch (error: any) {
+        console.error("Failed to save to database:", error);
+        return res.status(500).json({ 
+          message: "Failed to save design to database",
+          details: error.message,
+        });
+      }
+    } catch (error: any) {
+      console.error("Unexpected design creation error:", error);
+      res.status(500).json({ 
+        message: "An unexpected error occurred",
+        details: error.message
+      });
+    }
+  });
+
+  app.post("/api/designs/:id/generate-techpack", async (req, res) => {
+    try {
+      const { id } = req.params;
+      const { name, category, season } = req.body;
+
+      if (!name || !category || !season) {
+        return res.status(400).json({ 
+          message: "Missing required fields",
+          details: "name, category, and season are required"
+        });
+      }
+
+      console.log("Generating tech pack for design:", id);
+
+      try {
+        const techSpec = await generateTechSpec(name, category, season);
+        
+        if (!techSpec || !techSpec.designDescription) {
+          throw new Error("Tech spec generation returned invalid data");
+        }
+
+        await storage.updateDesign(id, {
+          description: techSpec.designDescription,
+        });
+
         const techPack = await storage.createTechPack({
-          designId: design.id,
+          designId: id,
           designDescription: techSpec.designDescription,
           specificationSheet: techSpec.specificationSheet,
           billOfMaterials: techSpec.billOfMaterials,
@@ -192,19 +227,27 @@ export async function registerRoutes(app: Express): Promise<Server> {
           patternNotes: techSpec.patternNotes,
           costSheet: techSpec.costSheet,
         });
-        console.log("Tech pack created:", techPack.id);
 
-        res.json({ design, techPack });
+        console.log("Tech pack created:", techPack.id);
+        res.json({ techPack });
       } catch (error: any) {
-        console.error("Failed to save to database:", error);
-        return res.status(500).json({ 
-          message: "Failed to save design to database",
+        console.error("Failed to generate tech pack:", error);
+        
+        const isValidationError = error.message?.includes("validation failed") || 
+                                   error.message?.includes("parsing failed") ||
+                                   error.message?.includes("Invalid") ||
+                                   error.message?.includes("Missing");
+        
+        return res.status(isValidationError ? 422 : 500).json({ 
+          message: isValidationError 
+            ? "AI failed to generate tech specs. Please try again."
+            : "Failed to generate tech specs",
           details: error.message,
-          step: "database_save"
+          retryable: true
         });
       }
     } catch (error: any) {
-      console.error("Unexpected design creation error:", error);
+      console.error("Unexpected error generating tech pack:", error);
       res.status(500).json({ 
         message: "An unexpected error occurred",
         details: error.message

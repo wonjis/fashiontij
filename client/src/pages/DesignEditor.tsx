@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -6,8 +6,9 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Textarea } from "@/components/ui/textarea";
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from "@/components/ui/accordion";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
-import { ArrowLeft, Share, Download, User, Plus, Sparkles, X } from "lucide-react";
+import { ArrowLeft, Share, Download, User, Plus, Sparkles, X, Loader2 } from "lucide-react";
 import { useLocation, useParams } from "wouter";
+import { useToast } from "@/hooks/use-toast";
 
 export default function DesignEditor() {
   const [, setLocation] = useLocation();
@@ -16,6 +17,8 @@ export default function DesignEditor() {
   const designId = params.id || "";
   const [showAiModal, setShowAiModal] = useState(false);
   const [aiPrompt, setAiPrompt] = useState("");
+  const [isGeneratingTechPack, setIsGeneratingTechPack] = useState(false);
+  const { toast } = useToast();
 
   const { data: design } = useQuery({
     queryKey: ["designs", designId],
@@ -26,14 +29,60 @@ export default function DesignEditor() {
     },
   });
 
-  const { data: techPack } = useQuery({
+  const { data: techPack, error: techPackError } = useQuery({
     queryKey: ["techpack", designId],
     queryFn: async () => {
       const res = await fetch(`/api/designs/${designId}/techpack`);
-      if (!res.ok) throw new Error("Failed to fetch tech pack");
+      if (!res.ok) {
+        if (res.status === 404) return null;
+        throw new Error("Failed to fetch tech pack");
+      }
       return res.json();
     },
+    retry: false,
   });
+
+  useEffect(() => {
+    if (design && techPack === null && !isGeneratingTechPack) {
+      const generateTechPack = async () => {
+        setIsGeneratingTechPack(true);
+        try {
+          const res = await fetch(`/api/designs/${designId}/generate-techpack`, {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({
+              name: design.name,
+              category: design.category,
+              season: design.season,
+            }),
+          });
+
+          if (!res.ok) {
+            throw new Error("Failed to generate tech pack");
+          }
+
+          await queryClient.invalidateQueries({ queryKey: ["techpack", designId] });
+          await queryClient.invalidateQueries({ queryKey: ["designs", designId] });
+          
+          toast({
+            title: "Tech pack ready!",
+            description: "AI-generated tech specs are now available.",
+          });
+        } catch (error) {
+          console.error("Failed to generate tech pack:", error);
+          toast({
+            title: "Generation failed",
+            description: "Failed to generate tech pack. Please try again.",
+            variant: "destructive",
+          });
+        } finally {
+          setIsGeneratingTechPack(false);
+        }
+      };
+
+      generateTechPack();
+    }
+  }, [design, techPack, designId, queryClient, isGeneratingTechPack, toast]);
 
   const aiMutation = useMutation({
     mutationFn: async (prompt: string) => {
@@ -213,16 +262,33 @@ export default function DesignEditor() {
                 <div className="bg-[#2a1f3e] rounded-lg p-4">
                   <div className="flex items-center gap-2 mb-2">
                     <div className="w-8 h-8 rounded bg-[#bf60ff] flex items-center justify-center">
-                      <span className="text-xs">📋</span>
+                      {isGeneratingTechPack ? (
+                        <Loader2 className="w-4 h-4 animate-spin text-white" />
+                      ) : (
+                        <span className="text-xs">📋</span>
+                      )}
                     </div>
                     <div>
                       <h3 className="font-semibold">Technical Package</h3>
-                      <p className="text-xs text-white/60">Auto-generated documentation for manufacturing handoffs</p>
+                      <p className="text-xs text-white/60">
+                        {isGeneratingTechPack 
+                          ? "AI is generating tech specs..." 
+                          : "Auto-generated documentation for manufacturing handoffs"}
+                      </p>
                     </div>
                   </div>
                 </div>
 
-                <Accordion type="single" collapsible className="space-y-2">
+                {isGeneratingTechPack ? (
+                  <div className="flex flex-col items-center justify-center py-12 space-y-4">
+                    <Loader2 className="w-12 h-12 animate-spin text-[#bf60ff]" />
+                    <div className="text-center">
+                      <p className="text-white/80">Generating tech specs with AI...</p>
+                      <p className="text-sm text-white/60 mt-2">This may take a few moments</p>
+                    </div>
+                  </div>
+                ) : (
+                  <Accordion type="single" collapsible className="space-y-2">
                   <AccordionItem value="description" className="bg-[#2a1f3e] rounded-lg px-4 border-none">
                     <AccordionTrigger>Design description</AccordionTrigger>
                     <AccordionContent className="text-sm text-white/80">
@@ -277,6 +343,7 @@ export default function DesignEditor() {
                     </AccordionContent>
                   </AccordionItem>
                 </Accordion>
+                )}
 
                 <Button className="w-full bg-[#bf60ff] hover:bg-[#bf60ff]/90 text-black">
                   <Download className="w-4 h-4 mr-2" />

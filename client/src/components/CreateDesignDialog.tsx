@@ -38,7 +38,6 @@ export function CreateDesignDialog({ onSuccess }: CreateDesignDialogProps) {
   const [creationStep, setCreationStep] = useState<string>("");
   const [isGeneratingFlat, setIsGeneratingFlat] = useState(false);
   const [generatedTechnicalFlatUrl, setGeneratedTechnicalFlatUrl] = useState<string>("");
-  const [generatedTechSpec, setGeneratedTechSpec] = useState<any>(null);
   const { toast } = useToast();
 
   const { data: collections = [] } = useQuery({
@@ -53,7 +52,7 @@ export function CreateDesignDialog({ onSuccess }: CreateDesignDialogProps) {
   const handleImageUpload = async (imageUrl: string) => {
     setUploadedImageUrl(imageUrl);
     setIsGeneratingFlat(true);
-    setCreationStep("Generating technical flat and tech specs with AI...");
+    setCreationStep("Generating technical flat...");
 
     try {
       const response = await fetch("/api/designs/generate-flat", {
@@ -68,22 +67,21 @@ export function CreateDesignDialog({ onSuccess }: CreateDesignDialogProps) {
 
       if (!response.ok) {
         const errorData = await response.json().catch(() => ({}));
-        throw new Error(errorData.details || errorData.message || "Failed to generate design");
+        throw new Error(errorData.details || errorData.message || "Failed to generate technical flat");
       }
 
       const result = await response.json();
       setGeneratedTechnicalFlatUrl(result.technicalFlatUrl);
-      setGeneratedTechSpec(result.techSpec);
       
       toast({
-        title: "AI generation complete!",
-        description: "Technical flat and tech specs are ready. Fill in the details and click Create.",
+        title: "Technical flat ready!",
+        description: "Fill in the details and click Create.",
       });
     } catch (error) {
       console.error("Generate error:", error);
       toast({
         title: "Generation failed",
-        description: error instanceof Error ? error.message : "Failed to generate design",
+        description: error instanceof Error ? error.message : "Failed to generate technical flat",
         variant: "destructive",
       });
       setUploadedImageUrl("");
@@ -103,17 +101,17 @@ export function CreateDesignDialog({ onSuccess }: CreateDesignDialogProps) {
       return;
     }
 
-    if (!generatedTechnicalFlatUrl || !generatedTechSpec) {
+    if (!generatedTechnicalFlatUrl) {
       toast({
         title: "Please wait",
-        description: "AI generation is still in progress",
+        description: "Technical flat is still being generated",
         variant: "destructive",
       });
       return;
     }
 
     setIsCreating(true);
-    setCreationStep("Saving design...");
+    setCreationStep("Creating design...");
 
     try {
       const response = await fetch("/api/designs/create", {
@@ -128,7 +126,6 @@ export function CreateDesignDialog({ onSuccess }: CreateDesignDialogProps) {
           season,
           originalSketchUrl: uploadedImageUrl,
           technicalFlatUrl: generatedTechnicalFlatUrl,
-          techSpec: generatedTechSpec,
         }),
       });
 
@@ -148,11 +145,13 @@ export function CreateDesignDialog({ onSuccess }: CreateDesignDialogProps) {
 
       toast({
         title: "Design created!",
-        description: `${result.design.name} has been created with AI-generated tech specs`,
+        description: "AI is now generating tech specs in the editor.",
       });
 
       setOpen(false);
       resetForm();
+      
+      window.location.href = `/editor/${result.design.id}`;
       onSuccess?.();
     } catch (error) {
       console.error("Create design error:", error);
@@ -174,7 +173,6 @@ export function CreateDesignDialog({ onSuccess }: CreateDesignDialogProps) {
     setCategory("");
     setSeason("");
     setGeneratedTechnicalFlatUrl("");
-    setGeneratedTechSpec(null);
     setIsGeneratingFlat(false);
   };
 
@@ -204,8 +202,8 @@ export function CreateDesignDialog({ onSuccess }: CreateDesignDialogProps) {
                 {creationStep}
               </div>
             )}
-            {uploadedImageUrl && !isGeneratingFlat && generatedTechnicalFlatUrl && generatedTechSpec && (
-              <p className="text-sm text-green-600 dark:text-green-400">✓ AI generation complete</p>
+            {uploadedImageUrl && !isGeneratingFlat && generatedTechnicalFlatUrl && (
+              <p className="text-sm text-green-600 dark:text-green-400">✓ Technical flat ready</p>
             )}
           </div>
 
@@ -269,7 +267,7 @@ export function CreateDesignDialog({ onSuccess }: CreateDesignDialogProps) {
           </Button>
           <Button
             onClick={handleCreate}
-            disabled={isCreating || isGeneratingFlat || !generatedTechnicalFlatUrl || !generatedTechSpec}
+            disabled={isCreating || isGeneratingFlat || !generatedTechnicalFlatUrl}
             data-testid="button-create"
           >
             {isCreating ? (
