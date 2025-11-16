@@ -184,13 +184,13 @@ Do NOT generate the image; ONLY output the technical description text.`;
 
   const textToImagePrompt = `Create a hi-fidelity technical flat illustration of the garment described in the text.
 Follow professional fashion technical-drawing standards.
-Render the illustration with a black background (non-clothing parts must be pure black, no white fill, no texture, no shadows).
+Render the illustration with a transparent background (no background color, no white fill, no texture, no shadows).
 
 Drawing Requirements
 
-Clean vector-style white linework only (visible on black background)
+Clean vector-style black linework only
 
-Black background (PNG) - all non-clothing areas must be pure black
+Transparent background (PNG) - all non-clothing areas must be fully transparent
 
 No shading, no color fills, no textures
 
@@ -198,7 +198,7 @@ Accurate proportions based on the description
 
 Front view, and back view if information is provided
 
-Do not include the model or the scene—only the garment flat on black background
+Do not include the model or the scene—only the garment flat on transparent background
 
 Technical Construction Rules
 
