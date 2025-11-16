@@ -1,5 +1,6 @@
 import OpenAI from "openai";
 import { z } from "zod";
+import sharp from "sharp";
 
 const openai = new OpenAI({
   apiKey: process.env.AI_INTEGRATIONS_OPENAI_API_KEY,
@@ -116,6 +117,43 @@ Rules:
   return parseTechSpec(content);
 }
 
+async function makeWhiteTransparent(imageBuffer: Buffer): Promise<Buffer> {
+  try {
+    const image = sharp(imageBuffer);
+    const { data, info } = await image
+      .ensureAlpha()
+      .raw()
+      .toBuffer({ resolveWithObject: true });
+
+    const pixelCount = info.width * info.height;
+    const channels = info.channels;
+
+    for (let i = 0; i < pixelCount; i++) {
+      const offset = i * channels;
+      const r = data[offset];
+      const g = data[offset + 1];
+      const b = data[offset + 2];
+
+      if (r > 240 && g > 240 && b > 240) {
+        data[offset + 3] = 0;
+      }
+    }
+
+    return await sharp(data, {
+      raw: {
+        width: info.width,
+        height: info.height,
+        channels: channels,
+      },
+    })
+      .png()
+      .toBuffer();
+  } catch (error) {
+    console.error("Failed to make white transparent:", error);
+    return imageBuffer;
+  }
+}
+
 export async function generateTechnicalFlat(sketchImageUrl: string): Promise<string> {
   let imageDataUrl: string;
   
@@ -187,7 +225,8 @@ Do NOT generate the image; ONLY output the technical description text.`;
 CRITICAL REQUIREMENTS:
 1. TRANSPARENT BACKGROUND - The background MUST be 100% transparent (alpha channel = 0). NO white background, NO colored background. Use PNG transparency.
 2. BLACK LINES ONLY - Draw the garment using clean black vector-style lines.
-3. OUTPUT: PNG format with full alpha transparency support.
+3. FRONT VIEW ONLY - Draw ONLY the front panel/view of the garment. Do NOT draw the back view.
+4. OUTPUT: PNG format with full alpha transparency support.
 
 GARMENT TO DRAW:
 ${technicalDescription}
@@ -197,11 +236,12 @@ DRAWING SPECIFICATIONS:
 - Lines: Clean black linework only, consistent line weight
 - Background: MUST BE TRANSPARENT (not white, not any color)
 - Detail: Show all seams, stitching, topstitching, panels, pockets, closures, hardware
-- View: Front view (and back view if mentioned in description)
+- View: FRONT VIEW ONLY (앞판만)
 - NO fills, NO shading, NO textures, NO gradients, NO colors
 - NO model, NO human figure, NO scenery
+- NO back view, NO side view
 
-The final image must be a PNG with a transparent background showing only black-lined garment technical flat.`;
+The final image must be a PNG with a transparent background showing only the front-view black-lined garment technical flat.`;
 
   const imageResponse = await openai.images.generate({
     model: "gpt-image-1",
@@ -217,7 +257,11 @@ The final image must be a PNG with a transparent background showing only black-l
   }
 
   const imageBuffer = Buffer.from(b64Json, 'base64');
-  const dataUrl = `data:image/png;base64,${b64Json}`;
+  
+  console.log("Converting white background to transparent...");
+  const processedBuffer = await makeWhiteTransparent(imageBuffer);
+  const processedBase64 = processedBuffer.toString('base64');
+  const dataUrl = `data:image/png;base64,${processedBase64}`;
   
   return dataUrl;
 }

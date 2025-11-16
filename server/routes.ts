@@ -94,10 +94,20 @@ export async function registerRoutes(app: Express): Promise<Server> {
       let techSpec;
 
       try {
-        console.log("Step 1: Generating technical flat from sketch...");
-        const generatedImageDataUrl = await generateTechnicalFlat(originalSketchUrl);
+        console.log("Step 1: Starting AI image generation and tech spec generation in parallel...");
         
-        console.log("Step 2: Extracting base64 data from data URL...");
+        const [generatedImageDataUrl, generatedTechSpec] = await Promise.all([
+          generateTechnicalFlat(originalSketchUrl),
+          generateTechSpec(name, category, season)
+        ]);
+        
+        techSpec = generatedTechSpec;
+        
+        if (!techSpec || !techSpec.designDescription) {
+          throw new Error("Tech spec generation returned invalid data");
+        }
+        
+        console.log("Step 2: AI generation completed. Extracting base64 data from image...");
         const base64Data = generatedImageDataUrl.split(',')[1];
         if (!base64Data) {
           throw new Error("Failed to extract base64 data from generated image");
@@ -130,50 +140,27 @@ export async function registerRoutes(app: Express): Promise<Server> {
         
         console.log("Technical flat uploaded:", technicalFlatUrl);
       } catch (error: any) {
-        console.error("Failed to generate technical flat:", error);
+        console.error("Failed to generate design with AI:", error);
         
         const isValidationError = error.message?.includes("Failed to analyze") || 
-                                   error.message?.includes("Failed to generate");
-        
-        return res.status(isValidationError ? 422 : 500).json({ 
-          message: isValidationError 
-            ? "AI failed to generate technical flat from your sketch. Please try again with a clearer image."
-            : "Failed to generate technical flat image",
-          details: error.message,
-          step: "technical_flat_generation",
-          retryable: true
-        });
-      }
-
-      try {
-        console.log("Step 4: Generating tech spec with GPT-4...");
-        techSpec = await generateTechSpec(name, category, season);
-        
-        if (!techSpec || !techSpec.designDescription) {
-          throw new Error("Tech spec generation returned invalid data");
-        }
-        
-        console.log("Tech spec generated successfully");
-      } catch (error: any) {
-        console.error("Failed to generate tech spec:", error);
-        
-        const isValidationError = error.message?.includes("validation failed") || 
+                                   error.message?.includes("Failed to generate") ||
+                                   error.message?.includes("validation failed") || 
                                    error.message?.includes("parsing failed") ||
                                    error.message?.includes("Invalid") ||
                                    error.message?.includes("Missing");
         
         return res.status(isValidationError ? 422 : 500).json({ 
           message: isValidationError 
-            ? "AI generated invalid technical specifications. Please try again."
-            : "Failed to generate technical specifications",
+            ? "AI failed to generate design. Please try again."
+            : "Failed to generate design with AI",
           details: error.message,
-          step: "tech_spec_generation",
-          retryable: isValidationError
+          step: "ai_generation",
+          retryable: true
         });
       }
 
       try {
-        console.log("Step 5: Creating design in database...");
+        console.log("Step 4: Creating design in database...");
         const design = await storage.createDesign({
           userId,
           collectionId,
@@ -188,7 +175,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
         });
         console.log("Design created:", design.id);
 
-        console.log("Step 6: Creating tech pack in database...");
+        console.log("Step 5: Creating tech pack in database...");
         const techPack = await storage.createTechPack({
           designId: design.id,
           designDescription: techSpec.designDescription,
