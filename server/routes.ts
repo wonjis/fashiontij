@@ -2,7 +2,7 @@ import type { Express } from "express";
 import { createServer, type Server } from "http";
 import { storage } from "./storage";
 import { ObjectStorageService, ObjectNotFoundError } from "./objectStorage";
-import { generateTechSpec } from "./openai";
+import { generateTechSpec, generateTechnicalFlat } from "./openai";
 
 export async function registerRoutes(app: Express): Promise<Server> {
   app.get("/api/collections", async (req, res) => {
@@ -90,10 +90,63 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
       console.log("Creating design with AI:", { name, category, season });
 
+      let technicalFlatUrl: string;
       let techSpec;
 
       try {
-        console.log("Step 1: Generating tech spec with GPT-4...");
+        console.log("Step 1: Generating technical flat from sketch...");
+        const generatedImageUrl = await generateTechnicalFlat(originalSketchUrl);
+        
+        console.log("Step 2: Downloading generated image...");
+        const imageResponse = await fetch(generatedImageUrl);
+        if (!imageResponse.ok) {
+          throw new Error(`Failed to download generated image: ${imageResponse.statusText}`);
+        }
+        const imageBuffer = await imageResponse.arrayBuffer();
+        
+        console.log("Step 3: Uploading to Object Storage...");
+        const objectStorageService = new ObjectStorageService();
+        const uploadUrl = await objectStorageService.getUploadUrl(
+          `designs/${Date.now()}-technical-flat.png`,
+          "image/png"
+        );
+        
+        const uploadResponse = await fetch(uploadUrl, {
+          method: "PUT",
+          headers: {
+            "Content-Type": "image/png",
+          },
+          body: Buffer.from(imageBuffer),
+        });
+        
+        if (!uploadResponse.ok) {
+          throw new Error(`Failed to upload to object storage: ${uploadResponse.statusText}`);
+        }
+        
+        const objectPath = uploadUrl.split('?')[0].split('/').slice(-2).join('/');
+        technicalFlatUrl = `/objects/${objectPath}`;
+        
+        await objectStorageService.setObjectAcl(objectPath, "public");
+        
+        console.log("Technical flat uploaded:", technicalFlatUrl);
+      } catch (error: any) {
+        console.error("Failed to generate technical flat:", error);
+        
+        const isValidationError = error.message?.includes("Failed to analyze") || 
+                                   error.message?.includes("Failed to generate");
+        
+        return res.status(isValidationError ? 422 : 500).json({ 
+          message: isValidationError 
+            ? "AI failed to generate technical flat from your sketch. Please try again with a clearer image."
+            : "Failed to generate technical flat image",
+          details: error.message,
+          step: "technical_flat_generation",
+          retryable: true
+        });
+      }
+
+      try {
+        console.log("Step 4: Generating tech spec with GPT-4...");
         techSpec = await generateTechSpec(name, category, season);
         
         if (!techSpec || !techSpec.designDescription) {
@@ -120,7 +173,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       }
 
       try {
-        console.log("Step 2: Creating design in database...");
+        console.log("Step 5: Creating design in database...");
         const design = await storage.createDesign({
           userId,
           collectionId,
@@ -129,13 +182,13 @@ export async function registerRoutes(app: Express): Promise<Server> {
           season,
           description: techSpec.designDescription,
           originalSketchUrl,
-          designImageUrl: originalSketchUrl,
+          designImageUrl: technicalFlatUrl,
           layers: [],
           properties: {},
         });
         console.log("Design created:", design.id);
 
-        console.log("Step 3: Creating tech pack in database...");
+        console.log("Step 6: Creating tech pack in database...");
         const techPack = await storage.createTechPack({
           designId: design.id,
           designDescription: techSpec.designDescription,

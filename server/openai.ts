@@ -116,6 +116,128 @@ Rules:
   return parseTechSpec(content);
 }
 
+export async function generateTechnicalFlat(sketchImageUrl: string): Promise<string> {
+  let imageDataUrl: string;
+  
+  if (sketchImageUrl.startsWith('/objects/')) {
+    const fullUrl = `http://localhost:5000${sketchImageUrl}`;
+    const imageResponse = await fetch(fullUrl);
+    if (!imageResponse.ok) {
+      throw new Error(`Failed to fetch sketch image: ${imageResponse.statusText}`);
+    }
+    const imageBuffer = await imageResponse.arrayBuffer();
+    const base64 = Buffer.from(imageBuffer).toString('base64');
+    const contentType = imageResponse.headers.get('content-type') || 'image/png';
+    imageDataUrl = `data:${contentType};base64,${base64}`;
+  } else if (sketchImageUrl.startsWith('http://') || sketchImageUrl.startsWith('https://')) {
+    imageDataUrl = sketchImageUrl;
+  } else {
+    throw new Error('Invalid sketch image URL format');
+  }
+
+  const imageToTextPrompt = `You are a professional fashion designer and technical designer.
+Analyze the garment in the input image and describe all key traits required to create a production-ready technical flat. Extract and explain:
+
+Silhouette & overall proportions
+
+Key garment pieces & paneling (front, back, sleeves, hood, collar, yokes, gussets, etc.)
+
+Construction details (seam placements, stitch types, topstitch locations)
+
+Collar/neckline construction (shape, stand, edge stitch, height, placket style)
+
+Pocket construction (type, placement, stitch details)
+
+Cuffs, hems, and finishings (rib, elastic, fold-back hem, binding, facing)
+
+Closures & hardware (zippers, pullers, buttons, snaps, cords, toggles)
+
+Fabric panel breaks & style lines
+
+Pleats, gathers, darts, tucks
+
+Technical details for production (bar tacks, reinforcement points, stitch lines)
+
+Any unique design elements
+
+Output a clean, structured technical description that DALL·E can use to draw an accurate hi-fidelity technical flat.
+Do NOT generate the image; ONLY output the technical description text.`;
+
+  const analysisResponse = await openai.chat.completions.create({
+    model: "gpt-4-vision-preview",
+    messages: [
+      {
+        role: "user",
+        content: [
+          { type: "text", text: imageToTextPrompt },
+          { type: "image_url", image_url: { url: imageDataUrl } }
+        ]
+      }
+    ],
+    max_tokens: 1000,
+  });
+
+  const technicalDescription = analysisResponse.choices[0]?.message?.content;
+  if (!technicalDescription) {
+    throw new Error("Failed to analyze sketch image");
+  }
+
+  const textToImagePrompt = `Create a hi-fidelity technical flat illustration of the garment described in the text.
+Follow professional fashion technical-drawing standards.
+Render the illustration with a transparent background (no white fill, no texture, no shadows).
+
+Drawing Requirements
+
+Clean vector-style black linework only
+
+Transparent background (PNG)
+
+No shading, no color, no textures
+
+Accurate proportions based on the description
+
+Front view, and back view if information is provided
+
+Do not include the model or the scene—only the garment flat
+
+Technical Construction Rules
+
+Clearly illustrate all seams, stitch lines, panel breaks
+
+Show topstitching, double-needle hems, facings, bindings
+
+Draw collars/hoods with accurate construction (stand, undercollar, placket)
+
+Render pockets (welt, patch, flap, zipper) with precise stitch detailing
+
+Represent closures (zippers, snaps, buttons, cords) exactly as described
+
+Include hardware (grommets, toggles, adjusters) in simplified line form
+
+Use consistent line weight and follow industry tech-flat conventions
+
+Output only the garment technical flat on a transparent background.
+
+Technical description:
+${technicalDescription}`;
+
+  const imageResponse = await openai.images.generate({
+    model: "dall-e-3",
+    prompt: textToImagePrompt,
+    n: 1,
+    size: "1024x1024",
+    quality: "standard",
+    response_format: "url",
+  });
+
+  const imageUrl = imageResponse.data?.[0]?.url;
+  if (!imageUrl) {
+    throw new Error("Failed to generate technical flat image");
+  }
+
+  return imageUrl;
+}
+
 function parseTechSpec(content: string): TechSpecResult {
   let cleanedContent = content.trim();
   

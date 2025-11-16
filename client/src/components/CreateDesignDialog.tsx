@@ -35,6 +35,7 @@ export function CreateDesignDialog({ onSuccess }: CreateDesignDialogProps) {
   const [category, setCategory] = useState("");
   const [season, setSeason] = useState("");
   const [isCreating, setIsCreating] = useState(false);
+  const [creationStep, setCreationStep] = useState<string>("");
   const { toast } = useToast();
 
   const { data: collections = [] } = useQuery({
@@ -57,8 +58,10 @@ export function CreateDesignDialog({ onSuccess }: CreateDesignDialogProps) {
     }
 
     setIsCreating(true);
+    setCreationStep("Analyzing sketch...");
 
     try {
+      const startTime = Date.now();
       const response = await fetch("/api/designs/create", {
         method: "POST",
         headers: {
@@ -72,6 +75,16 @@ export function CreateDesignDialog({ onSuccess }: CreateDesignDialogProps) {
           originalSketchUrl: uploadedImageUrl,
         }),
       });
+
+      const elapsedTime = Date.now() - startTime;
+      
+      if (elapsedTime < 2000) {
+        setCreationStep("Analyzing sketch...");
+      } else if (elapsedTime < 8000) {
+        setCreationStep("Generating technical flat...");
+      } else {
+        setCreationStep("Creating tech specs...");
+      }
 
       if (!response.ok) {
         const errorData = await response.json().catch(() => ({}));
@@ -104,6 +117,7 @@ export function CreateDesignDialog({ onSuccess }: CreateDesignDialogProps) {
       });
     } finally {
       setIsCreating(false);
+      setCreationStep("");
     }
   };
 
@@ -206,7 +220,7 @@ export function CreateDesignDialog({ onSuccess }: CreateDesignDialogProps) {
             {isCreating ? (
               <>
                 <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                Creating with AI...
+                {creationStep || "Creating with AI..."}
               </>
             ) : (
               "Create"
