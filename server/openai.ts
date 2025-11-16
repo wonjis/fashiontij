@@ -184,19 +184,25 @@ Construction details (seam placements, stitch types, topstitch locations)
 
 Collar/neckline construction (shape, stand, edge stitch, height, placket style)
 
-Pocket construction (type, placement, stitch details)
+Pocket construction (type, placement, stitch details) - COUNT THE EXACT NUMBER OF POCKETS
 
 Cuffs, hems, and finishings (rib, elastic, fold-back hem, binding, facing)
 
-Closures & hardware (zippers, pullers, buttons, snaps, cords, toggles)
+Closures & hardware - BE SPECIFIC WITH COUNTS:
+  - COUNT the exact number of buttons/snaps (e.g., "5 buttons" not "several buttons")
+  - COUNT zipper teeth or length if visible
+  - COUNT toggles, cord stoppers, D-rings
+  - Specify exact button sizes and placement (e.g., "5 large buttons center front, 2 small buttons on cuffs")
 
-Fabric panel breaks & style lines
+Fabric panel breaks & style lines - COUNT the number of panels
 
-Pleats, gathers, darts, tucks
+Pleats, gathers, darts, tucks - COUNT each type (e.g., "2 darts on each side")
 
 Technical details for production (bar tacks, reinforcement points, stitch lines)
 
 Any unique design elements
+
+IMPORTANT: When counting elements (buttons, pockets, panels, darts, etc.), always provide EXACT NUMBERS, not vague descriptions like "multiple" or "several".
 
 Output a clean, structured technical description that DALL·E can use to draw an accurate hi-fidelity technical flat.
 Do NOT generate the image; ONLY output the technical description text.`;
