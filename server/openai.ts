@@ -182,44 +182,26 @@ Do NOT generate the image; ONLY output the technical description text.`;
     throw new Error("Failed to analyze sketch image");
   }
 
-  const textToImagePrompt = `Create a hi-fidelity technical flat illustration of the garment described in the text.
-Follow professional fashion technical-drawing standards.
-Render the illustration with a transparent background (no background color, no white fill, no texture, no shadows).
+  const textToImagePrompt = `You are creating a professional fashion technical flat (tech pack illustration).
 
-Drawing Requirements
+CRITICAL REQUIREMENTS:
+1. TRANSPARENT BACKGROUND - The background MUST be 100% transparent (alpha channel = 0). NO white background, NO colored background. Use PNG transparency.
+2. BLACK LINES ONLY - Draw the garment using clean black vector-style lines.
+3. OUTPUT: PNG format with full alpha transparency support.
 
-Clean vector-style black linework only
+GARMENT TO DRAW:
+${technicalDescription}
 
-Transparent background (PNG) - all non-clothing areas must be fully transparent
+DRAWING SPECIFICATIONS:
+- Style: Professional fashion technical flat (like a blueprint)
+- Lines: Clean black linework only, consistent line weight
+- Background: MUST BE TRANSPARENT (not white, not any color)
+- Detail: Show all seams, stitching, topstitching, panels, pockets, closures, hardware
+- View: Front view (and back view if mentioned in description)
+- NO fills, NO shading, NO textures, NO gradients, NO colors
+- NO model, NO human figure, NO scenery
 
-No shading, no color fills, no textures
-
-Accurate proportions based on the description
-
-Front view, and back view if information is provided
-
-Do not include the model or the scene—only the garment flat on transparent background
-
-Technical Construction Rules
-
-Clearly illustrate all seams, stitch lines, panel breaks
-
-Show topstitching, double-needle hems, facings, bindings
-
-Draw collars/hoods with accurate construction (stand, undercollar, placket)
-
-Render pockets (welt, patch, flap, zipper) with precise stitch detailing
-
-Represent closures (zippers, snaps, buttons, cords) exactly as described
-
-Include hardware (grommets, toggles, adjusters) in simplified line form
-
-Use consistent line weight and follow industry tech-flat conventions
-
-Output only the garment technical flat on a transparent background.
-
-Technical description:
-${technicalDescription}`;
+The final image must be a PNG with a transparent background showing only black-lined garment technical flat.`;
 
   const imageResponse = await openai.images.generate({
     model: "gpt-image-1",
