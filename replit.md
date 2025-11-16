@@ -123,11 +123,14 @@ Preferred communication style: Simple, everyday language.
 - Self-hosted via HTML link tags
 
 **AI Integration (OpenAI via Replit AI Integrations)**
+- GPT-4 Vision for sketch image analysis (converts to technical description)
+- DALL-E 3 for technical flat image generation from descriptions
 - GPT-4 for tech spec generation from design metadata
 - Zod schema validation for AI responses with fail-closed error handling
 - NaN-safe numeric parsing with currency symbol stripping
 - 422 status codes for validation errors (retryable) vs 500 for server errors
 - No API key required - uses Replit AI Integrations (credits-based billing)
+- Image handling: Internal `/objects/` URLs converted to base64 data URLs for OpenAI API compatibility
 
 **Design Decisions**
 - All UI components are client-side rendered (rsc: false)
@@ -137,20 +140,30 @@ Preferred communication style: Simple, everyday language.
 
 ## Recent Changes
 
-**November 15, 2025: Create Design Feature with AI Integration**
-- Implemented AI-powered design creation workflow
-- **POST /api/designs/create** endpoint for automated tech spec generation
-- Uses uploaded sketch as design image (no DALL-E image generation)
-- GPT-4 generates structured tech specs based on design metadata (name, category, season)
+**November 16, 2025: Technical Flat Image Generation**
+- Added two-step AI image generation workflow:
+  - **Step 1**: GPT-4 Vision analyzes uploaded sketch → generates technical description
+  - **Step 2**: DALL-E 3 generates technical flat PNG from description (transparent background)
+- **POST /api/designs/create** endpoint now:
+  1. Converts internal `/objects/` URLs to base64 data URLs for OpenAI compatibility
+  2. Generates technical flat image via GPT-4 Vision + DALL-E
+  3. Downloads generated image from OpenAI
+  4. Uploads to Object Storage with public ACL
+  5. Generates tech specs with GPT-4
+  6. Saves design (with technical flat URL) and tech pack to database
+- Added ObjectStorageService helper methods:
+  - `getUploadUrl(objectPath, contentType)` - generates signed upload URL
+  - `setObjectAcl(objectPath, visibility)` - sets object ACL policy
+- Updated CreateDesignDialog UI:
+  - Progressive loading messages: "Analyzing sketch..." → "Generating technical flat..." → "Creating tech specs..."
+  - Time-based step estimation for better UX
 - Comprehensive validation with Zod schemas:
   - BillOfMaterials items validated for required fields
   - Cost sheet numbers coerced from strings (handles "$12.50" format)
   - Total validation ensures sum matches components (fail-closed)
   - Missing fields rejected (no silent defaults)
 - Error handling with typed responses:
-  - 422 for AI validation errors (user can retry)
+  - 422 for AI validation/generation errors (user can retry)
   - 500 for server/system errors
-  - Detailed error messages with field paths
-- CreateDesignDialog component with all required data-testid attributes
-- React Query cache invalidation for automatic UI updates
-- Future enhancement: integrate img2img diffusion service (ControlNet) for true sketch-to-flat transformation
+  - Detailed error messages with field paths and step indicators
+- Note: Two-step approach (image→text→image) used instead of true image-to-image due to API limitations
