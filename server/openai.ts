@@ -260,7 +260,7 @@ The final image must be a PNG showing a front-view technical flat with transpare
     model: "gpt-image-1",
     prompt: textToImagePrompt,
     n: 1,
-    size: "512x512",
+    size: "1024x1024",
   });
 
   const b64Json = imageResponse.data?.[0]?.b64_json;
